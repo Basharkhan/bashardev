@@ -1,0 +1,514 @@
+{
+  "info": {
+    "_postman_id": "b7e4bdb7-7d23-4d80-b3ca-2a715f4d6c01",
+    "name": "BasharDev API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for testing the BasharDev backend APIs."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": "1"
+    },
+    {
+      "key": "projectSlug",
+      "value": "portfolio-platform"
+    },
+    {
+      "key": "blogPostId",
+      "value": "1"
+    },
+    {
+      "key": "blogPostSlug",
+      "value": "building-a-dynamic-portfolio"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site Settings",
+      "item": [
+        {
+          "name": "Get Site Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/site-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "site-settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upsert Site Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteTitle\": \"BasharDev\",\n  \"siteDescription\": \"Dynamic portfolio and dev blog\",\n  \"ownerName\": \"Bashar Khan\",\n  \"headline\": \"Full-stack developer building thoughtful products\",\n  \"shortBio\": \"I build backend systems and modern web apps.\",\n  \"fullBio\": \"Longer markdown or plain text bio goes here.\",\n  \"location\": \"Dhaka, Bangladesh\",\n  \"email\": \"hello@example.com\",\n  \"githubUrl\": \"https://github.com/example\",\n  \"linkedinUrl\": \"https://linkedin.com/in/example\",\n  \"twitterUrl\": \"https://x.com/example\",\n  \"resumeUrl\": \"https://example.com/resume.pdf\",\n  \"profileImageUrl\": \"https://example.com/profile.jpg\",\n  \"heroImageUrl\": \"https://example.com/hero.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/site-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "site-settings"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Get Public Projects",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Public Project By Slug",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/projects/slug/{{projectSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "slug",
+                "{{projectSlug}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "projects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Project By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "projects",
+                "{{projectId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('projectId', String(json.id));",
+                  "  pm.collectionVariables.set('projectSlug', json.slug);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Portfolio Platform\",\n  \"slug\": \"portfolio-platform\",\n  \"summary\": \"A portfolio and CMS built with Spring Boot and React.\",\n  \"contentMarkdown\": \"# Portfolio Platform\\n\\nProject details here.\",\n  \"coverImageUrl\": \"https://example.com/project-cover.jpg\",\n  \"galleryImageUrls\": \"[\\\"https://example.com/1.jpg\\\"]\",\n  \"liveUrl\": \"https://example.com\",\n  \"repositoryUrl\": \"https://github.com/example/repo\",\n  \"techStack\": \"[\\\"Spring Boot\\\",\\\"React\\\",\\\"PostgreSQL\\\"]\",\n  \"featured\": true,\n  \"status\": \"PUBLISHED\",\n  \"publishedAt\": \"2026-04-26T12:00:00Z\",\n  \"displayOrder\": 1,\n  \"seoTitle\": \"Portfolio Platform\",\n  \"seoDescription\": \"Case study for the portfolio platform\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "projects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Portfolio Platform Updated\",\n  \"slug\": \"{{projectSlug}}\",\n  \"summary\": \"Updated summary.\",\n  \"contentMarkdown\": \"# Updated\\n\\nMore details here.\",\n  \"coverImageUrl\": \"https://example.com/project-cover.jpg\",\n  \"galleryImageUrls\": \"[\\\"https://example.com/1.jpg\\\"]\",\n  \"liveUrl\": \"https://example.com\",\n  \"repositoryUrl\": \"https://github.com/example/repo\",\n  \"techStack\": \"[\\\"Spring Boot\\\",\\\"React\\\",\\\"PostgreSQL\\\"]\",\n  \"featured\": true,\n  \"status\": \"PUBLISHED\",\n  \"publishedAt\": \"2026-04-26T12:00:00Z\",\n  \"displayOrder\": 1,\n  \"seoTitle\": \"Portfolio Platform Updated\",\n  \"seoDescription\": \"Updated case study\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "projects",
+                "{{projectId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "projects",
+                "{{projectId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blog Posts",
+      "item": [
+        {
+          "name": "Get Public Blog Posts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/blog-posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "blog-posts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Public Blog Post By Slug",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/blog-posts/slug/{{blogPostSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "blog-posts",
+                "slug",
+                "{{blogPostSlug}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Blog Posts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/blog-posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "blog-posts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Blog Post By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/blog-posts/{{blogPostId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "blog-posts",
+                "{{blogPostId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Blog Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('blogPostId', String(json.id));",
+                  "  pm.collectionVariables.set('blogPostSlug', json.slug);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Building a Dynamic Portfolio\",\n  \"slug\": \"building-a-dynamic-portfolio\",\n  \"excerpt\": \"Notes from building a dynamic portfolio CMS.\",\n  \"contentMarkdown\": \"# Building a Dynamic Portfolio\\n\\nPost content here.\",\n  \"coverImageUrl\": \"https://example.com/post-cover.jpg\",\n  \"status\": \"PUBLISHED\",\n  \"featured\": true,\n  \"publishedAt\": \"2026-04-26T12:00:00Z\",\n  \"readingTime\": 6,\n  \"seoTitle\": \"Building a Dynamic Portfolio\",\n  \"seoDescription\": \"How the portfolio CMS is being built\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/blog-posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "blog-posts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Blog Post",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Building a Dynamic Portfolio Updated\",\n  \"slug\": \"{{blogPostSlug}}\",\n  \"excerpt\": \"Updated excerpt.\",\n  \"contentMarkdown\": \"# Updated Post\\n\\nUpdated content.\",\n  \"coverImageUrl\": \"https://example.com/post-cover.jpg\",\n  \"status\": \"PUBLISHED\",\n  \"featured\": true,\n  \"publishedAt\": \"2026-04-26T12:00:00Z\",\n  \"readingTime\": 7,\n  \"seoTitle\": \"Building a Dynamic Portfolio Updated\",\n  \"seoDescription\": \"Updated build notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/blog-posts/{{blogPostId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "blog-posts",
+                "{{blogPostId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Blog Post",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/blog-posts/{{blogPostId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "blog-posts",
+                "{{blogPostId}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
