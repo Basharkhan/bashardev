@@ -5,14 +5,22 @@ import com.bashardev.backend.blog.dto.BlogPostResponse;
 import com.bashardev.backend.blog.entity.BlogPost;
 import com.bashardev.backend.blog.entity.BlogPostStatus;
 import com.bashardev.backend.blog.repository.BlogPostRepository;
-import java.util.Comparator;
-import java.util.List;
+import com.bashardev.backend.common.web.PagedResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class BlogPostService {
+
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final Sort PUBLISHED_SORT = Sort.by(
+            Sort.Order.desc("publishedAt"),
+            Sort.Order.desc("createdAt")
+    );
+    private static final Sort ADMIN_SORT = Sort.by(Sort.Order.desc("createdAt"));
 
     private final BlogPostRepository blogPostRepository;
 
@@ -20,11 +28,12 @@ public class BlogPostService {
         this.blogPostRepository = blogPostRepository;
     }
 
-    public List<BlogPostResponse> getPublishedBlogPosts() {
-        return blogPostRepository.findAllByStatusOrderByPublishedAtDescCreatedAtDesc(BlogPostStatus.PUBLISHED)
-                .stream()
-                .map(BlogPostService::toResponse)
-                .toList();
+    public PagedResponse<BlogPostResponse> getPublishedBlogPosts(int page, int size) {
+        return PagedResponse.from(blogPostRepository.findAllByStatus(
+                        BlogPostStatus.PUBLISHED,
+                        PageRequest.of(normalizePage(page), normalizePageSize(size), PUBLISHED_SORT)
+                )
+                .map(BlogPostService::toResponse));
     }
 
     public BlogPostResponse getPublishedBlogPostBySlug(String slug) {
@@ -33,11 +42,10 @@ public class BlogPostService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Blog post not found")));
     }
 
-    public List<BlogPostResponse> getAdminBlogPosts() {
-        return blogPostRepository.findAll().stream()
-                .sorted(Comparator.comparing(BlogPost::getCreatedAt).reversed())
-                .map(BlogPostService::toResponse)
-                .toList();
+    public PagedResponse<BlogPostResponse> getAdminBlogPosts(int page, int size) {
+        return PagedResponse.from(blogPostRepository.findAll(
+                PageRequest.of(normalizePage(page), normalizePageSize(size), ADMIN_SORT)
+        ).map(BlogPostService::toResponse));
     }
 
     public BlogPostResponse getAdminBlogPostById(Long id) {
@@ -64,6 +72,18 @@ public class BlogPostService {
         }
 
         blogPostRepository.deleteById(id);
+    }
+
+    private static int normalizePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private static int normalizePageSize(int size) {
+        if (size < 1) {
+            return 1;
+        }
+
+        return Math.min(size, MAX_PAGE_SIZE);
     }
 
     private BlogPost findBlogPost(Long id) {

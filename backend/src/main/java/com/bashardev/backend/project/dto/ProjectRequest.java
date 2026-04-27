@@ -7,20 +7,32 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 
 public record ProjectRequest(
-        @NotBlank @Size(max = 150) String title,
-        @NotBlank @Size(max = 180) String slug,
-        @NotBlank @Size(max = 500) String summary,
+        @NotBlank(message = "Title is required")
+        @Size(max = 150, message = "Title must be at most 150 characters")
+        String title,
+        @NotBlank(message = "Slug is required")
+        @Size(max = 180, message = "Slug must be at most 180 characters")
+        String slug,
+        @NotBlank(message = "Summary is required")
+        @Size(max = 500, message = "Summary must be at most 500 characters")
+        String summary,
         String contentMarkdown,
-        @Size(max = 255) String coverImageUrl,
+        @Size(max = 255, message = "Cover image URL must be at most 255 characters")
+        String coverImageUrl,
         String galleryImageUrls,
-        @Size(max = 255) String liveUrl,
-        @Size(max = 255) String repositoryUrl,
+        @Size(max = 255, message = "Live URL must be at most 255 characters")
+        String liveUrl,
+        @Size(max = 255, message = "Repository URL must be at most 255 characters")
+        String repositoryUrl,
         String techStack,
         boolean featured,
-        @NotNull ProjectStatus status,
+        @NotNull(message = "Status is required")
+        ProjectStatus status,
         Instant publishedAt,
         int displayOrder,
-        @Size(max = 160) String seoTitle,
-        @Size(max = 255) String seoDescription
+        @Size(max = 160, message = "SEO title must be at most 160 characters")
+        String seoTitle,
+        @Size(max = 255, message = "SEO description must be at most 255 characters")
+        String seoDescription
 ) {
 }

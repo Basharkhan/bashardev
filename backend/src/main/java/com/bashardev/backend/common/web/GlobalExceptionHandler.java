@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -34,16 +37,25 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getField)
-                .collect(Collectors.joining(", "));
+        Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        fieldError -> Optional.ofNullable(fieldError.getDefaultMessage()).orElse("Invalid value"),
+                        (first, ignored) -> first,
+                        LinkedHashMap::new
+                ));
+
+        String message = fieldErrors.size() == 1
+                ? fieldErrors.values().iterator().next()
+                : "Validation failed";
 
         return ResponseEntity.badRequest().body(new ApiError(
                 Instant.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Validation failed for: " + message,
-                request.getRequestURI()
+                message,
+                request.getRequestURI(),
+                fieldErrors
         ));
     }
 }
