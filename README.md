@@ -34,6 +34,7 @@ bashardev/
 ## Documentation
 
 - Project plan: `docs/PROJECT_PLAN.md`
+- Frontend plan: `docs/FRONTEND_PLAN.md`
 - Backend testing: `docs/BACKEND_TESTING.md`
 - Docker setup: `docs/DOCKER.md`
 - Postman collection: `docs/BasharDev.postman_collection.json`
@@ -50,6 +51,29 @@ bashardev/
 ## Local Setup
 
 ### Backend
+
+Simplest local flow from the project root:
+
+```bash
+make make-backend
+```
+
+This will:
+
+- start PostgreSQL with Docker
+- wait until the database is healthy
+- run the Spring Boot app locally on `http://localhost:8080`
+
+Other useful commands:
+
+```bash
+make make-frontend
+make db-up
+make db-down
+make backend-docker
+```
+
+Manual backend flow:
 
 1. Copy `backend/.env.example` into your preferred env source
 2. Create a PostgreSQL database named `bashardev`

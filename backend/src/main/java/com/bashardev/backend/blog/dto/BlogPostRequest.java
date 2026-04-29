@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.List;
 
 public record BlogPostRequest(
         @NotBlank(message = "Title is required")
@@ -30,6 +31,8 @@ public record BlogPostRequest(
         @Size(max = 160, message = "SEO title must be at most 160 characters")
         String seoTitle,
         @Size(max = 255, message = "SEO description must be at most 255 characters")
-        String seoDescription
+        String seoDescription,
+        List<Long> tagIds,
+        List<Long> mediaAssetIds
 ) {
 }

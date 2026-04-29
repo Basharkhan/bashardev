@@ -6,6 +6,8 @@ import com.bashardev.backend.blog.entity.BlogPost;
 import com.bashardev.backend.blog.entity.BlogPostStatus;
 import com.bashardev.backend.blog.repository.BlogPostRepository;
 import com.bashardev.backend.common.web.PagedResponse;
+import com.bashardev.backend.media.service.MediaAssetService;
+import com.bashardev.backend.tag.service.TagService;
 import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,9 +25,13 @@ public class BlogPostService {
     private static final Sort ADMIN_SORT = Sort.by(Sort.Order.desc("createdAt"));
 
     private final BlogPostRepository blogPostRepository;
+    private final TagService tagService;
+    private final MediaAssetService mediaAssetService;
 
-    public BlogPostService(BlogPostRepository blogPostRepository) {
+    public BlogPostService(BlogPostRepository blogPostRepository, TagService tagService, MediaAssetService mediaAssetService) {
         this.blogPostRepository = blogPostRepository;
+        this.tagService = tagService;
+        this.mediaAssetService = mediaAssetService;
     }
 
     public PagedResponse<BlogPostResponse> getPublishedBlogPosts(int page, int size) {
@@ -55,14 +61,14 @@ public class BlogPostService {
     public BlogPostResponse createBlogPost(BlogPostRequest request) {
         ensureSlugAvailable(request.slug(), null);
         BlogPost post = new BlogPost();
-        apply(post, request);
+        apply(post, request, tagService, mediaAssetService);
         return toResponse(blogPostRepository.save(post));
     }
 
     public BlogPostResponse updateBlogPost(Long id, BlogPostRequest request) {
         BlogPost post = findBlogPost(id);
         ensureSlugAvailable(request.slug(), id);
-        apply(post, request);
+        apply(post, request, tagService, mediaAssetService);
         return toResponse(blogPostRepository.save(post));
     }
 
@@ -99,7 +105,7 @@ public class BlogPostService {
                 });
     }
 
-    private static void apply(BlogPost post, BlogPostRequest request) {
+    private static void apply(BlogPost post, BlogPostRequest request, TagService tagService, MediaAssetService mediaAssetService) {
         post.setTitle(request.title());
         post.setSlug(request.slug());
         post.setExcerpt(request.excerpt());
@@ -111,6 +117,10 @@ public class BlogPostService {
         post.setReadingTime(request.readingTime());
         post.setSeoTitle(request.seoTitle());
         post.setSeoDescription(request.seoDescription());
+        post.getTags().clear();
+        post.getTags().addAll(tagService.resolveTags(request.tagIds()));
+        post.getMediaAssets().clear();
+        post.getMediaAssets().addAll(mediaAssetService.resolveMediaAssets(request.mediaAssetIds()));
     }
 
     private static BlogPostResponse toResponse(BlogPost post) {
@@ -127,6 +137,14 @@ public class BlogPostService {
                 post.getReadingTime(),
                 post.getSeoTitle(),
                 post.getSeoDescription(),
+                post.getTags().stream()
+                        .sorted((left, right) -> left.getName().compareToIgnoreCase(right.getName()))
+                        .map(TagService::toResponse)
+                        .toList(),
+                post.getMediaAssets().stream()
+                        .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
+                        .map(MediaAssetService::toResponse)
+                        .toList(),
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );

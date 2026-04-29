@@ -1,12 +1,19 @@
 package com.bashardev.backend.blog.entity;
 
 import com.bashardev.backend.common.entity.BaseEntity;
+import com.bashardev.backend.media.entity.MediaAsset;
+import com.bashardev.backend.tag.entity.Tag;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -49,4 +56,20 @@ public class BlogPost extends BaseEntity {
 
     @Column(name = "seo_description", length = 255)
     private String seoDescription;
+
+    @ManyToMany
+    @JoinTable(
+            name = "blog_post_tags",
+            joinColumns = @JoinColumn(name = "blog_post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new LinkedHashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "blog_post_media_assets",
+            joinColumns = @JoinColumn(name = "blog_post_id"),
+            inverseJoinColumns = @JoinColumn(name = "media_asset_id")
+    )
+    private Set<MediaAsset> mediaAssets = new LinkedHashSet<>();
 }

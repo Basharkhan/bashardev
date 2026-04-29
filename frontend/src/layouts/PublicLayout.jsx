@@ -1,10 +1,10 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 
 const navItems = [
-  { to: '/', label: 'Home' },
-  { to: '/projects', label: 'Projects' },
-  { to: '/blog', label: 'Blog' },
-  { to: '/contact', label: 'Contact' },
+  { href: '#home', label: 'Home' },
+  { href: '#projects', label: 'Projects' },
+  { href: '#blog', label: 'Blog' },
+  { href: '#contact', label: 'Contact' },
 ]
 
 export function PublicLayout() {
@@ -12,21 +12,18 @@ export function PublicLayout() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-black/10 bg-[#fffaf2]/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <NavLink to="/" className="font-['Space_Grotesk'] text-xl font-semibold tracking-tight">
+          <Link to="/" className="font-['Space_Grotesk'] text-xl font-semibold tracking-tight">
             BasharDev
-          </NavLink>
+          </Link>
           <nav className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 p-1 text-sm">
             {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  `rounded-full px-4 py-2 transition ${isActive ? 'bg-[#1a1d1a] text-white' : 'text-black/65 hover:bg-black/5'}`
-                }
+              <a
+                key={item.href}
+                href={`/${item.href}`}
+                className="rounded-full px-4 py-2 text-black/65 transition hover:bg-black/5"
               >
                 {item.label}
-              </NavLink>
+              </a>
             ))}
           </nav>
         </div>

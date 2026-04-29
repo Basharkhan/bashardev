@@ -39,3 +39,4 @@ docker compose down -v
 - Flyway migrations run automatically when the backend starts
 - the first admin user is bootstrapped automatically if the `users` table is empty
 - frontend can continue running locally with `npm run dev`
+- for the local backend workflow with Docker-managed Postgres only, run `make backend`

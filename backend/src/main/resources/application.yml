@@ -1,6 +1,10 @@
 spring:
   application:
     name: bashardev-backend
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/bashardev}
     username: ${DB_USERNAME:postgres}
@@ -32,6 +36,9 @@ app:
       password: ${ADMIN_PASSWORD:admin123456}
       first-name: ${ADMIN_FIRST_NAME:Bashar}
       last-name: ${ADMIN_LAST_NAME:Admin}
+  storage:
+    upload-dir: ${UPLOAD_DIR:./uploads/}
+    max-image-size-bytes: ${MAX_IMAGE_SIZE_BYTES:5242880}
 
 logging:
   level:

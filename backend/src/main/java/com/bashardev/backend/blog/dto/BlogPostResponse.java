@@ -1,6 +1,9 @@
 package com.bashardev.backend.blog.dto;
 
+import com.bashardev.backend.media.dto.MediaAssetResponse;
+import com.bashardev.backend.tag.dto.TagResponse;
 import java.time.Instant;
+import java.util.List;
 
 public record BlogPostResponse(
         Long id,
@@ -15,6 +18,8 @@ public record BlogPostResponse(
         int readingTime,
         String seoTitle,
         String seoDescription,
+        List<TagResponse> tags,
+        List<MediaAssetResponse> mediaAssets,
         Instant createdAt,
         Instant updatedAt
 ) {
