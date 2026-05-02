@@ -1,7 +1,18 @@
 import { apiClient } from './client'
 
-export async function getMediaAssets() {
-  const response = await apiClient.get('/admin/media')
+export async function getMediaAssets({ page = 0, size = 12, search = '' } = {}) {
+  const response = await apiClient.get('/admin/media', {
+    params: {
+      page,
+      size,
+      search,
+    },
+  })
+  return response.data
+}
+
+export async function getMediaAssetOptions() {
+  const response = await apiClient.get('/admin/media/options')
   return response.data
 }
 

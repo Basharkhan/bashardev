@@ -1,18 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getCurrentUser, login as loginRequest } from '../api/auth'
 import { clearStoredAccessToken, getStoredAccessToken, setStoredAccessToken } from '../utils/authStorage'
-
-const AuthContext = createContext(null)
+import { AuthContext } from './auth-context'
 
 export function AuthProvider({ children }) {
+  const [storedToken] = useState(() => getStoredAccessToken())
   const [user, setUser] = useState(null)
-  const [isAuthReady, setIsAuthReady] = useState(false)
+  const [isAuthReady, setIsAuthReady] = useState(() => !storedToken)
 
   useEffect(() => {
-    const token = getStoredAccessToken()
-
-    if (!token) {
-      setIsAuthReady(true)
+    if (!storedToken) {
       return
     }
 
@@ -27,7 +24,7 @@ export function AuthProvider({ children }) {
       .finally(() => {
         setIsAuthReady(true)
       })
-  }, [])
+  }, [storedToken])
 
   async function login(credentials) {
     const response = await loginRequest(credentials)
@@ -55,14 +52,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-
-  return context
 }

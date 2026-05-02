@@ -25,4 +25,6 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
     Page<BlogPost> findAll(Pageable pageable);
 
     long countByTagsId(Long tagId);
+
+    long countByMediaAssetsId(Long mediaAssetId);
 }

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { createBlogPost, deleteBlogPost, getAdminBlogPosts, updateBlogPost } from '../../api/blogPosts'
-import { getAdminTags } from '../../api/tags'
-import { deleteMediaAsset, getMediaAssets, uploadImage } from '../../api/uploads'
+import { getAdminTagOptions } from '../../api/tags'
+import { deleteMediaAsset, getMediaAssetOptions, uploadImage } from '../../api/uploads'
 import { getApiErrorDetails } from '../../utils/apiError'
 
 const initialFormData = {
@@ -118,6 +118,10 @@ function FieldError({ message }) {
   return <p className="text-sm text-[#f7a28c]">{message}</p>
 }
 
+function markdownImageSnippet(media) {
+  return `![${media.originalFileName}](${media.url})`
+}
+
 function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, post, onClose, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState(() =>
     post
@@ -143,6 +147,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
   const [isSlugDirty, setIsSlugDirty] = useState(Boolean(post?.slug))
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState(null)
+  const contentTextareaRef = useRef(null)
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target
@@ -280,6 +285,53 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
     }
   }
 
+  function insertMediaIntoContent(media) {
+    const textarea = contentTextareaRef.current
+    const snippet = markdownImageSnippet(media)
+
+    setFormData((current) => {
+      const currentValue = current.contentMarkdown ?? ''
+
+      if (!textarea) {
+        const divider = currentValue.trim() ? '\n\n' : ''
+        return {
+          ...current,
+          contentMarkdown: `${currentValue}${divider}${snippet}`,
+          mediaAssetIds: current.mediaAssetIds.includes(media.id)
+            ? current.mediaAssetIds
+            : [...current.mediaAssetIds, media.id],
+        }
+      }
+
+      const selectionStart = textarea.selectionStart ?? currentValue.length
+      const selectionEnd = textarea.selectionEnd ?? currentValue.length
+      const before = currentValue.slice(0, selectionStart)
+      const after = currentValue.slice(selectionEnd)
+      const prefix = before && !before.endsWith('\n') ? '\n\n' : ''
+      const suffix = after && !after.startsWith('\n') ? '\n\n' : ''
+      const nextContent = `${before}${prefix}${snippet}${suffix}${after}`
+
+      window.requestAnimationFrame(() => {
+        const nextCursor = (before + prefix + snippet).length
+        textarea.focus()
+        textarea.setSelectionRange(nextCursor, nextCursor)
+      })
+
+      return {
+        ...current,
+        contentMarkdown: nextContent,
+        mediaAssetIds: current.mediaAssetIds.includes(media.id)
+          ? current.mediaAssetIds
+          : [...current.mediaAssetIds, media.id],
+      }
+    })
+
+    setFieldErrors((current) => ({
+      ...current,
+      contentMarkdown: '',
+    }))
+  }
+
   function handleMediaToggle(mediaId) {
     setFormData((current) => {
       const isSelected = current.mediaAssetIds.includes(mediaId)
@@ -338,6 +390,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               rows="16"
               value={formData.contentMarkdown}
               onChange={handleChange}
+              ref={contentTextareaRef}
               className="w-full rounded-2xl border border-white/12 bg-[#0b0b0b] px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-white/30"
             />
             <FieldError message={fieldErrors.contentMarkdown} />
@@ -381,7 +434,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
           <div className="space-y-3 rounded-[28px] border border-white/10 bg-white/4 p-5">
             <div>
               <p className="font-['Space_Grotesk'] text-lg font-semibold text-white">Media library</p>
-              <p className="mt-1 text-sm text-white/55">Pick a cover image and also attach multiple reusable media items for this post.</p>
+              <p className="mt-1 text-sm text-white/55">Pick a cover image, attach reusable assets, or insert a markdown image directly into the post body.</p>
             </div>
 
             {availableMedia.length > 0 ? (
@@ -431,6 +484,13 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                             }`}
                           >
                             {isAttached ? 'Attached' : 'Attach'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => insertMediaIntoContent(media)}
+                            className="rounded-full border border-white/12 px-3 py-1 text-xs font-medium text-white/75 transition hover:bg-white/8"
+                          >
+                            Embed in post
                           </button>
                         </div>
                         <button
@@ -614,12 +674,24 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="font-['Space_Grotesk'] text-lg font-semibold text-white">Preview</p>
-                <p className="mt-1 text-sm text-white/55">Live markdown preview for quick validation.</p>
+                <p className="mt-1 text-sm text-white/55">Live markdown preview, including embedded post images.</p>
               </div>
             </div>
             <div className="prose prose-invert mt-5 max-w-none text-sm text-white/80">
               {formData.contentMarkdown.trim() ? (
-                <ReactMarkdown>{formData.contentMarkdown}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    img: (props) => (
+                      <img
+                        {...props}
+                        className="my-6 w-full rounded-[22px] border border-white/10 object-cover"
+                        loading="lazy"
+                      />
+                    ),
+                  }}
+                >
+                  {formData.contentMarkdown}
+                </ReactMarkdown>
               ) : (
                 <p className="text-white/45">Start writing to see a preview.</p>
               )}
@@ -691,7 +763,7 @@ export function AdminBlogPostsPage() {
     setIsTagsLoading(true)
 
     try {
-      const response = await getAdminTags()
+      const response = await getAdminTagOptions()
       setAvailableTags(response)
     } catch (error) {
       setPageError((current) => current || getApiErrorDetails(error).message)
@@ -704,7 +776,7 @@ export function AdminBlogPostsPage() {
     setIsMediaLoading(true)
 
     try {
-      const response = await getMediaAssets()
+      const response = await getMediaAssetOptions()
       setAvailableMedia(response)
     } catch (error) {
       setPageError((current) => current || getApiErrorDetails(error).message)

@@ -8,6 +8,11 @@ export async function getAdminBlogPosts(page = 0, size = 10) {
   return response.data
 }
 
+export async function getBlogPostBySlug(slug) {
+  const response = await apiClient.get(`/blog-posts/slug/${slug}`)
+  return response.data
+}
+
 export async function createBlogPost(payload) {
   const response = await apiClient.post('/admin/blog-posts', payload)
   return response.data

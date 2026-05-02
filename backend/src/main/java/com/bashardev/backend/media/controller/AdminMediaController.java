@@ -1,5 +1,6 @@
 package com.bashardev.backend.media.controller;
 
+import com.bashardev.backend.common.web.PagedResponse;
 import com.bashardev.backend.media.dto.MediaAssetResponse;
 import com.bashardev.backend.media.service.MediaAssetService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,7 +28,16 @@ public class AdminMediaController {
     }
 
     @GetMapping
-    public List<MediaAssetResponse> getMediaAssets() {
+    public PagedResponse<MediaAssetResponse> getMediaAssets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "") String search
+    ) {
+        return mediaAssetService.getAdminMediaAssets(page, size, search);
+    }
+
+    @GetMapping("/options")
+    public List<MediaAssetResponse> getMediaAssetOptions() {
         return mediaAssetService.getMediaAssets();
     }
 

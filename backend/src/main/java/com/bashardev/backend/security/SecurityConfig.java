@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/site-settings/**", "/api/projects", "/api/projects/slug/*", "/api/blog-posts", "/api/blog-posts/slug/*", "/api/tags/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/contact/**").permitAll()

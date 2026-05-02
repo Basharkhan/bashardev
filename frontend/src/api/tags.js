@@ -1,7 +1,18 @@
 import { apiClient } from './client'
 
-export async function getAdminTags() {
-  const response = await apiClient.get('/admin/tags')
+export async function getAdminTags({ page = 0, size = 10, search = '' } = {}) {
+  const response = await apiClient.get('/admin/tags', {
+    params: {
+      page,
+      size,
+      search,
+    },
+  })
+  return response.data
+}
+
+export async function getAdminTagOptions() {
+  const response = await apiClient.get('/admin/tags/options')
   return response.data
 }
 

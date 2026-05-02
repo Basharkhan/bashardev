@@ -3,8 +3,8 @@ package com.bashardev.backend.tag.controller;
 import com.bashardev.backend.tag.dto.TagRequest;
 import com.bashardev.backend.tag.dto.TagResponse;
 import com.bashardev.backend.tag.service.TagService;
+import com.bashardev.backend.common.web.PagedResponse;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,7 +28,16 @@ public class AdminTagController {
     }
 
     @GetMapping
-    public List<TagResponse> getTags() {
+    public PagedResponse<TagResponse> getTags(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "") String search
+    ) {
+        return tagService.getAdminTags(page, size, search);
+    }
+
+    @GetMapping("/options")
+    public java.util.List<TagResponse> getTagOptions() {
         return tagService.getTags();
     }
 

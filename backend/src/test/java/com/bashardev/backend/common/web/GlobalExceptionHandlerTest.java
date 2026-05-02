@@ -2,15 +2,16 @@ package com.bashardev.backend.common.web;
 
 import com.bashardev.backend.auth.dto.LoginRequest;
 import jakarta.validation.Valid;
+import java.lang.reflect.Method;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-
-import java.lang.reflect.Method;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,6 +38,25 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().fieldErrors())
                 .containsEntry("username", "Username is required")
                 .containsEntry("password", "Password is required");
+    }
+
+    @Test
+    void returnsFieldErrorsForFieldAwareStatusException() {
+        FieldAwareResponseStatusException exception = new FieldAwareResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Tag slug already exists",
+                Map.of("slug", "Tag slug already exists")
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/admin/tags/6");
+
+        ResponseEntity<ApiError> response = handler.handleFieldAwareResponseStatusException(exception, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(409);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo("Tag slug already exists");
+        assertThat(response.getBody().fieldErrors())
+                .containsEntry("slug", "Tag slug already exists");
     }
 
     private MethodParameter loginMethodParameter() throws NoSuchMethodException {
