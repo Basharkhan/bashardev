@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import DOMPurify from 'isomorphic-dompurify'
 import { useParams } from 'react-router-dom'
 import { getBlogPostBySlug } from '../../api/blogPosts'
 import { getApiErrorDetails } from '../../utils/apiError'
@@ -81,21 +81,10 @@ export function BlogDetailPage() {
         </div>
       ) : null}
 
-      <div className="prose prose-lg max-w-none text-black/82">
-        <ReactMarkdown
-          components={{
-            img: (props) => (
-              <img
-                {...props}
-                className="my-8 w-full rounded-[24px] border border-black/8 object-cover shadow-[0_18px_50px_rgba(17,17,17,0.08)]"
-                loading="lazy"
-              />
-            ),
-          }}
-        >
-          {post.contentMarkdown}
-        </ReactMarkdown>
-      </div>
+      <div
+        className="prose prose-lg max-w-none text-black/82 [&_img]:my-8 [&_img]:w-full [&_img]:rounded-[24px] [&_img]:border [&_img]:border-black/8 [&_img]:object-cover [&_img]:shadow-[0_18px_50px_rgba(17,17,17,0.08)]"
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+      />
     </article>
   )
 }

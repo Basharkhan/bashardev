@@ -32,8 +32,12 @@ public class BlogPost extends BaseEntity {
     @Column(name = "excerpt", nullable = false, length = 500)
     private String excerpt;
 
-    @Column(name = "content_markdown", nullable = false, columnDefinition = "TEXT")
-    private String contentMarkdown;
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_format", nullable = false, length = 20)
+    private ContentFormat contentFormat = ContentFormat.HTML;
 
     @Column(name = "cover_image_url", length = 255)
     private String coverImageUrl;

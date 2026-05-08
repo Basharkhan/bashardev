@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import DOMPurify from 'isomorphic-dompurify'
 import { createBlogPost, deleteBlogPost, getAdminBlogPosts, updateBlogPost } from '../../api/blogPosts'
 import { getAdminTagOptions } from '../../api/tags'
 import { deleteMediaAsset, getMediaAssetOptions, uploadImage } from '../../api/uploads'
 import { getApiErrorDetails } from '../../utils/apiError'
+import { RichTextEditor } from '../../components/admin/RichTextEditor'
 
 const initialFormData = {
   title: '',
   slug: '',
   excerpt: '',
-  contentMarkdown: '',
+  content: '',
   coverImageUrl: '',
   status: 'DRAFT',
   featured: false,
@@ -56,7 +57,7 @@ function toPayload(formData) {
     title: formData.title.trim(),
     slug: formData.slug.trim(),
     excerpt: formData.excerpt.trim(),
-    contentMarkdown: formData.contentMarkdown.trim(),
+    content: formData.content.trim(),
     coverImageUrl: formData.coverImageUrl.trim(),
     seoTitle: formData.seoTitle.trim(),
     seoDescription: formData.seoDescription.trim(),
@@ -73,7 +74,7 @@ function validateForm(formData) {
   if (!formData.title.trim()) errors.title = 'Title is required.'
   if (!formData.slug.trim()) errors.slug = 'Slug is required.'
   if (!formData.excerpt.trim()) errors.excerpt = 'Excerpt is required.'
-  if (!formData.contentMarkdown.trim()) errors.contentMarkdown = 'Content is required.'
+  if (!formData.content.trim()) errors.content = 'Content is required.'
   if (formData.title.trim().length > 180) errors.title = 'Title must be at most 180 characters.'
   if (formData.slug.trim().length > 200) errors.slug = 'Slug must be at most 200 characters.'
   if (formData.excerpt.trim().length > 500) errors.excerpt = 'Excerpt must be at most 500 characters.'
@@ -118,10 +119,6 @@ function FieldError({ message }) {
   return <p className="text-sm text-[#f7a28c]">{message}</p>
 }
 
-function markdownImageSnippet(media) {
-  return `![${media.originalFileName}](${media.url})`
-}
-
 function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, post, onClose, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState(() =>
     post
@@ -129,7 +126,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
           title: post.title ?? '',
           slug: post.slug ?? '',
           excerpt: post.excerpt ?? '',
-          contentMarkdown: post.contentMarkdown ?? '',
+          content: post.content ?? '',
           coverImageUrl: post.coverImageUrl ?? '',
           status: post.status ?? 'DRAFT',
           featured: Boolean(post.featured),
@@ -147,7 +144,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
   const [isSlugDirty, setIsSlugDirty] = useState(Boolean(post?.slug))
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState(null)
-  const contentTextareaRef = useRef(null)
+  const editorRef = useRef(null)
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target
@@ -286,49 +283,20 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
   }
 
   function insertMediaIntoContent(media) {
-    const textarea = contentTextareaRef.current
-    const snippet = markdownImageSnippet(media)
+    if (editorRef.current) {
+      editorRef.current.insertImage(media.url, media.originalFileName)
+    }
 
-    setFormData((current) => {
-      const currentValue = current.contentMarkdown ?? ''
-
-      if (!textarea) {
-        const divider = currentValue.trim() ? '\n\n' : ''
-        return {
-          ...current,
-          contentMarkdown: `${currentValue}${divider}${snippet}`,
-          mediaAssetIds: current.mediaAssetIds.includes(media.id)
-            ? current.mediaAssetIds
-            : [...current.mediaAssetIds, media.id],
-        }
-      }
-
-      const selectionStart = textarea.selectionStart ?? currentValue.length
-      const selectionEnd = textarea.selectionEnd ?? currentValue.length
-      const before = currentValue.slice(0, selectionStart)
-      const after = currentValue.slice(selectionEnd)
-      const prefix = before && !before.endsWith('\n') ? '\n\n' : ''
-      const suffix = after && !after.startsWith('\n') ? '\n\n' : ''
-      const nextContent = `${before}${prefix}${snippet}${suffix}${after}`
-
-      window.requestAnimationFrame(() => {
-        const nextCursor = (before + prefix + snippet).length
-        textarea.focus()
-        textarea.setSelectionRange(nextCursor, nextCursor)
-      })
-
-      return {
-        ...current,
-        contentMarkdown: nextContent,
-        mediaAssetIds: current.mediaAssetIds.includes(media.id)
-          ? current.mediaAssetIds
-          : [...current.mediaAssetIds, media.id],
-      }
-    })
+    setFormData((current) => ({
+      ...current,
+      mediaAssetIds: current.mediaAssetIds.includes(media.id)
+        ? current.mediaAssetIds
+        : [...current.mediaAssetIds, media.id],
+    }))
 
     setFieldErrors((current) => ({
       ...current,
-      contentMarkdown: '',
+      content: '',
     }))
   }
 
@@ -384,16 +352,16 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm text-white/75">Content (Markdown)</span>
-            <textarea
-              name="contentMarkdown"
-              rows="16"
-              value={formData.contentMarkdown}
-              onChange={handleChange}
-              ref={contentTextareaRef}
-              className="w-full rounded-2xl border border-white/12 bg-[#0b0b0b] px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-white/30"
+            <span className="text-sm text-white/75">Content</span>
+            <RichTextEditor
+              ref={editorRef}
+              content={formData.content}
+              onChange={(html) => {
+                setFormData((current) => ({ ...current, content: html }))
+                setFieldErrors((current) => ({ ...current, content: '' }))
+              }}
             />
-            <FieldError message={fieldErrors.contentMarkdown} />
+            <FieldError message={fieldErrors.content} />
           </label>
 
           <label className="block space-y-2">
@@ -677,21 +645,9 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                 <p className="mt-1 text-sm text-white/55">Live markdown preview, including embedded post images.</p>
               </div>
             </div>
-            <div className="prose prose-invert mt-5 max-w-none text-sm text-white/80">
-              {formData.contentMarkdown.trim() ? (
-                <ReactMarkdown
-                  components={{
-                    img: (props) => (
-                      <img
-                        {...props}
-                        className="my-6 w-full rounded-[22px] border border-white/10 object-cover"
-                        loading="lazy"
-                      />
-                    ),
-                  }}
-                >
-                  {formData.contentMarkdown}
-                </ReactMarkdown>
+            <div className="prose prose-invert mt-5 max-w-none text-sm text-white/80 [&_img]:my-6 [&_img]:w-full [&_img]:rounded-[22px] [&_img]:border [&_img]:border-white/10">
+              {formData.content.trim() ? (
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }} />
               ) : (
                 <p className="text-white/45">Start writing to see a preview.</p>
               )}

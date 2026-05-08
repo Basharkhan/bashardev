@@ -4,6 +4,7 @@ import com.bashardev.backend.blog.dto.BlogPostRequest;
 import com.bashardev.backend.blog.dto.BlogPostResponse;
 import com.bashardev.backend.blog.entity.BlogPost;
 import com.bashardev.backend.blog.entity.BlogPostStatus;
+import com.bashardev.backend.blog.entity.ContentFormat;
 import com.bashardev.backend.blog.repository.BlogPostRepository;
 import com.bashardev.backend.common.web.PagedResponse;
 import com.bashardev.backend.media.service.MediaAssetService;
@@ -109,7 +110,8 @@ public class BlogPostService {
         post.setTitle(request.title());
         post.setSlug(request.slug());
         post.setExcerpt(request.excerpt());
-        post.setContentMarkdown(request.contentMarkdown());
+        post.setContent(request.content());
+        post.setContentFormat(ContentFormat.HTML);
         post.setCoverImageUrl(request.coverImageUrl());
         post.setStatus(request.status());
         post.setFeatured(request.featured());
@@ -129,7 +131,8 @@ public class BlogPostService {
                 post.getTitle(),
                 post.getSlug(),
                 post.getExcerpt(),
-                post.getContentMarkdown(),
+                post.getContent(),
+                post.getContentFormat().name(),
                 post.getCoverImageUrl(),
                 post.getStatus().name(),
                 post.isFeatured(),
