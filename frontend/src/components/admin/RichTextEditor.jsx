@@ -17,11 +17,12 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import { common, createLowlight } from 'lowlight'
 import { EditorToolbar } from './EditorToolbar'
+import { cn } from '../../lib/utils'
 
 const lowlight = createLowlight(common)
 
 export const RichTextEditor = forwardRef(function RichTextEditor(
-  { content, onChange, placeholder = 'Start writing...', editable = true, onImageUpload },
+  { content, onChange, onBlur, className, placeholder = 'Start writing...', editable = true, onImageUpload },
   ref
 ) {
   const editor = useEditor({
@@ -57,6 +58,14 @@ export const RichTextEditor = forwardRef(function RichTextEditor(
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
+    editorProps: {
+      handleDOMEvents: {
+        blur: () => {
+          onBlur?.()
+          return false
+        },
+      },
+    },
   })
 
   const insertImage = useCallback(
@@ -84,7 +93,7 @@ export const RichTextEditor = forwardRef(function RichTextEditor(
   }
 
   return (
-    <div className="rich-editor overflow-hidden rounded-2xl border border-white/12 bg-[#0b0b0b]">
+    <div className={cn('rich-editor overflow-hidden rounded-2xl border border-white/12 bg-[#0b0b0b]', className)}>
       <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
       <EditorContent editor={editor} />
     </div>

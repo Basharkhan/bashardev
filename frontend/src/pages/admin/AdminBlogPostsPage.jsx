@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import DOMPurify from 'isomorphic-dompurify'
 import { createBlogPost, deleteBlogPost, getAdminBlogPosts, updateBlogPost } from '../../api/blogPosts'
 import { getAdminTagOptions } from '../../api/tags'
-import { deleteMediaAsset, getMediaAssetOptions, uploadImage } from '../../api/uploads'
+import { deleteMediaAsset, getMediaAssets, uploadImage } from '../../api/uploads'
 import { getApiErrorDetails } from '../../utils/apiError'
 import { RichTextEditor } from '../../components/admin/RichTextEditor'
+import { cn } from '../../lib/utils'
 
 const initialFormData = {
   title: '',
@@ -119,7 +120,7 @@ function FieldError({ message }) {
   return <p className="text-sm text-[#f7a28c]">{message}</p>
 }
 
-function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, post, onClose, onSubmit, isSubmitting }) {
+function AdminBlogPostModal({ availableTags, post, onClose, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState(() =>
     post
       ? {
@@ -140,40 +141,147 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
       : initialFormData,
   )
   const [fieldErrors, setFieldErrors] = useState({})
+  const [touchedFields, setTouchedFields] = useState({})
   const [formError, setFormError] = useState('')
   const [isSlugDirty, setIsSlugDirty] = useState(Boolean(post?.slug))
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState(null)
+  const [availableMedia, setAvailableMedia] = useState([])
+  const [mediaPage, setMediaPage] = useState(0)
+  const [mediaSearchInput, setMediaSearchInput] = useState('')
+  const [mediaSearch, setMediaSearch] = useState('')
+  const [mediaHasNext, setMediaHasNext] = useState(false)
+  const [isMediaLoading, setIsMediaLoading] = useState(true)
   const editorRef = useRef(null)
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setMediaSearch(mediaSearchInput.trim())
+      setMediaPage(0)
+    }, 250)
+
+    return () => clearTimeout(timeoutId)
+  }, [mediaSearchInput])
+
+  useEffect(() => {
+    loadMediaPage(mediaPage, mediaSearch)
+  }, [mediaPage, mediaSearch])
+
+  async function loadMediaPage(page, search) {
+    setIsMediaLoading(true)
+
+    try {
+      const response = await getMediaAssets({
+        page,
+        size: 12,
+        search,
+      })
+      setAvailableMedia(response.items ?? [])
+      setMediaHasNext(Boolean(response.hasNext))
+    } catch (error) {
+      setFormError(getApiErrorDetails(error).message)
+      setAvailableMedia([])
+      setMediaHasNext(false)
+    } finally {
+      setIsMediaLoading(false)
+    }
+  }
+
+  function validateField(name, nextState) {
+    const errors = validateForm(nextState)
+    return errors[name] || ''
+  }
+
+  function markFieldTouched(name) {
+    setTouchedFields((current) => {
+      if (current[name]) {
+        return current
+      }
+
+      return {
+        ...current,
+        [name]: true,
+      }
+    })
+  }
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target
     const nextValue = type === 'checkbox' ? checked : value
+    let nextFormState
 
     setFormData((current) => {
-      const nextState = {
+      nextFormState = {
         ...current,
         [name]: nextValue,
       }
 
       if (name === 'title' && !isSlugDirty) {
-        nextState.slug = slugify(value)
+        nextFormState.slug = slugify(value)
       }
 
       if (name === 'status' && value === 'DRAFT') {
-        nextState.publishedAt = ''
+        nextFormState.publishedAt = ''
       }
 
-      return nextState
+      return nextFormState
     })
 
     if (name === 'slug') {
       setIsSlugDirty(true)
     }
 
+    setFormError('')
+
+    setFieldErrors((current) => {
+      const nextErrors = {
+        ...current,
+      }
+
+      if (touchedFields[name] || current[name]) {
+        nextErrors[name] = validateField(name, nextFormState)
+      }
+
+      if (name === 'title' && !isSlugDirty && (touchedFields.slug || current.slug)) {
+        nextErrors.slug = validateField('slug', nextFormState)
+      }
+
+      if (name === 'status' && (touchedFields.publishedAt || current.publishedAt)) {
+        nextErrors.publishedAt = validateField('publishedAt', nextFormState)
+      }
+
+      return nextErrors
+    })
+  }
+
+  function handleBlur(event) {
+    const { name } = event.target
+    markFieldTouched(name)
     setFieldErrors((current) => ({
       ...current,
-      [name]: '',
+      [name]: validateField(name, formData),
+    }))
+  }
+
+  function handleContentChange(html) {
+    const nextFormState = {
+      ...formData,
+      content: html,
+    }
+
+    setFormData(nextFormState)
+    setFormError('')
+    setFieldErrors((current) => ({
+      ...current,
+      content: touchedFields.content || current.content ? validateField('content', nextFormState) : current.content,
+    }))
+  }
+
+  function handleContentBlur() {
+    markFieldTouched('content')
+    setFieldErrors((current) => ({
+      ...current,
+      content: validateField('content', formData),
     }))
   }
 
@@ -221,7 +329,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
         ...current,
         coverImageUrl: '',
       }))
-      onMediaDeleted(false)
+      await loadMediaPage(mediaPage, mediaSearch)
     } catch (error) {
       setFormError(getApiErrorDetails(error).message)
     } finally {
@@ -274,7 +382,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
         }))
       }
 
-      await onMediaDeleted()
+      await loadMediaPage(mediaPage, mediaSearch)
     } catch (error) {
       setFormError(getApiErrorDetails(error).message)
     } finally {
@@ -313,6 +421,10 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
     })
   }
 
+  const selectedMedia = (post?.mediaAssets ?? [])
+    .concat(availableMedia)
+    .filter((media, index, array) => array.findIndex((current) => current.id === media.id) === index)
+
   return (
     <ModalShell title={post ? 'Edit blog post' : 'Create blog post'} onClose={onClose}>
       <form className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]" onSubmit={handleSubmit}>
@@ -323,7 +435,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+              onBlur={handleBlur}
+              className={cn(
+                'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                fieldErrors.title && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+              )}
             />
             <FieldError message={fieldErrors.title} />
           </label>
@@ -334,7 +450,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               name="slug"
               value={formData.slug}
               onChange={handleChange}
-              className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+              onBlur={handleBlur}
+              className={cn(
+                'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                fieldErrors.slug && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+              )}
             />
             <FieldError message={fieldErrors.slug} />
           </label>
@@ -346,7 +466,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               rows="4"
               value={formData.excerpt}
               onChange={handleChange}
-              className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+              onBlur={handleBlur}
+              className={cn(
+                'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                fieldErrors.excerpt && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+              )}
             />
             <FieldError message={fieldErrors.excerpt} />
           </label>
@@ -356,10 +480,9 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
             <RichTextEditor
               ref={editorRef}
               content={formData.content}
-              onChange={(html) => {
-                setFormData((current) => ({ ...current, content: html }))
-                setFieldErrors((current) => ({ ...current, content: '' }))
-              }}
+              onChange={handleContentChange}
+              onBlur={handleContentBlur}
+              className={cn(fieldErrors.content && 'border-[#c96b53] bg-[#2a1713]')}
             />
             <FieldError message={fieldErrors.content} />
           </label>
@@ -393,19 +516,72 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               name="coverImageUrl"
               value={formData.coverImageUrl}
               onChange={handleChange}
-              className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+              onBlur={handleBlur}
+              className={cn(
+                'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                fieldErrors.coverImageUrl && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+              )}
               placeholder="Uploaded image URL will appear here"
             />
             <FieldError message={fieldErrors.coverImageUrl} />
           </label>
 
-          <div className="space-y-3 rounded-[28px] border border-white/10 bg-white/4 p-5">
-            <div>
-              <p className="font-['Space_Grotesk'] text-lg font-semibold text-white">Media library</p>
-              <p className="mt-1 text-sm text-white/55">Pick a cover image, attach reusable assets, or insert a markdown image directly into the post body.</p>
+            <div className="space-y-3 rounded-[28px] border border-white/10 bg-white/4 p-5">
+              <div>
+                <p className="font-['Space_Grotesk'] text-lg font-semibold text-white">Media library</p>
+                <p className="mt-1 text-sm text-white/55">Pick a cover image, attach reusable assets, or insert a markdown image directly into the post body.</p>
+              </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex w-full gap-2 sm:max-w-sm">
+                <input
+                  type="search"
+                  value={mediaSearchInput}
+                  onChange={(event) => setMediaSearchInput(event.target.value)}
+                  placeholder="Search media by filename"
+                  className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaSearchInput('')
+                    setMediaSearch('')
+                    setMediaPage(0)
+                  }}
+                  disabled={!mediaSearchInput && !mediaSearch}
+                  className="rounded-full border border-white/12 px-4 py-2 text-xs font-medium text-white/75 transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <span className="inline-flex items-center rounded-full border border-white/12 px-3 py-2 text-xs font-medium text-white/70">
+                  Page {mediaPage + 1}
+                </span>
+                <button
+                  type="button"
+                  disabled={mediaPage === 0 || isMediaLoading}
+                  onClick={() => setMediaPage((current) => Math.max(current - 1, 0))}
+                  className="rounded-full border border-white/12 px-4 py-2 text-xs font-medium text-white/75 transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={!mediaHasNext || isMediaLoading}
+                  onClick={() => setMediaPage((current) => current + 1)}
+                  className="rounded-full border border-white/12 px-4 py-2 text-xs font-medium text-white/75 transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
 
-            {availableMedia.length > 0 ? (
+            {isMediaLoading ? (
+              <p className="text-sm text-white/45">Loading media...</p>
+            ) : null}
+
+            {!isMediaLoading && availableMedia.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 {availableMedia.map((media) => {
                   const isSelected = formData.coverImageUrl === media.url
@@ -475,7 +651,7 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                 })}
               </div>
             ) : (
-              <p className="text-sm text-white/45">No uploaded media yet. Upload an image above to start building the library.</p>
+              !isMediaLoading ? <p className="text-sm text-white/45">No media found for this page/search.</p> : null
             )}
           </div>
 
@@ -497,7 +673,9 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {availableMedia
+                  .concat(selectedMedia)
                   .filter((media) => formData.mediaAssetIds.includes(media.id))
+                  .filter((media, index, array) => array.findIndex((current) => current.id === media.id) === index)
                   .map((media) => (
                     <div key={media.id} className="overflow-hidden rounded-[20px] border border-white/10 bg-[#0f0f0f]">
                       <img src={media.url} alt={media.originalFileName} className="h-28 w-full object-cover" />
@@ -526,7 +704,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                onBlur={handleBlur}
+                className={cn(
+                  'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                  fieldErrors.status && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+                )}
               >
                 {statusOptions.map((status) => (
                   <option key={status} value={status} className="bg-[#111111]">
@@ -545,7 +727,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                 min="1"
                 value={formData.readingTime}
                 onChange={handleChange}
-                className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                onBlur={handleBlur}
+                className={cn(
+                  'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                  fieldErrors.readingTime && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+                )}
               />
               <FieldError message={fieldErrors.readingTime} />
             </label>
@@ -558,8 +744,12 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
               type="datetime-local"
               value={formData.publishedAt}
               onChange={handleChange}
+              onBlur={handleBlur}
               disabled={formData.status === 'DRAFT'}
-              className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30 disabled:cursor-not-allowed disabled:opacity-50"
+              className={cn(
+                'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30 disabled:cursor-not-allowed disabled:opacity-50',
+                fieldErrors.publishedAt && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+              )}
             />
             <FieldError message={fieldErrors.publishedAt} />
           </label>
@@ -620,7 +810,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                 name="seoTitle"
                 value={formData.seoTitle}
                 onChange={handleChange}
-                className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                onBlur={handleBlur}
+                className={cn(
+                  'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                  fieldErrors.seoTitle && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+                )}
               />
               <FieldError message={fieldErrors.seoTitle} />
             </label>
@@ -632,7 +826,11 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
                 rows="4"
                 value={formData.seoDescription}
                 onChange={handleChange}
-                className="w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                onBlur={handleBlur}
+                className={cn(
+                  'w-full rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-white outline-none transition focus:border-white/30',
+                  fieldErrors.seoDescription && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]',
+                )}
               />
               <FieldError message={fieldErrors.seoDescription} />
             </label>
@@ -680,10 +878,8 @@ function AdminBlogPostModal({ availableMedia, availableTags, onMediaDeleted, pos
 
 export function AdminBlogPostsPage() {
   const [blogPage, setBlogPage] = useState(null)
-  const [availableMedia, setAvailableMedia] = useState([])
   const [availableTags, setAvailableTags] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isMediaLoading, setIsMediaLoading] = useState(true)
   const [isTagsLoading, setIsTagsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
@@ -698,7 +894,6 @@ export function AdminBlogPostsPage() {
 
   useEffect(() => {
     loadTags()
-    loadMedia()
   }, [])
 
   async function loadPage(page) {
@@ -725,19 +920,6 @@ export function AdminBlogPostsPage() {
       setPageError((current) => current || getApiErrorDetails(error).message)
     } finally {
       setIsTagsLoading(false)
-    }
-  }
-
-  async function loadMedia() {
-    setIsMediaLoading(true)
-
-    try {
-      const response = await getMediaAssetOptions()
-      setAvailableMedia(response)
-    } catch (error) {
-      setPageError((current) => current || getApiErrorDetails(error).message)
-    } finally {
-      setIsMediaLoading(false)
     }
   }
 
@@ -931,26 +1113,23 @@ export function AdminBlogPostsPage() {
 
       {isCreateOpen ? (
         <AdminBlogPostModal
-          availableMedia={availableMedia}
           availableTags={availableTags}
-          onMediaDeleted={loadMedia}
           onClose={() => setIsCreateOpen(false)}
           onSubmit={handleCreate}
-          isSubmitting={isSaving || isTagsLoading || isMediaLoading}
+          isSubmitting={isSaving || isTagsLoading}
         />
       ) : null}
 
       {activePost ? (
         <AdminBlogPostModal
-          availableMedia={availableMedia}
           availableTags={availableTags}
-          onMediaDeleted={loadMedia}
           post={activePost}
           onClose={() => setActivePost(null)}
           onSubmit={handleUpdate}
-          isSubmitting={isSaving || isTagsLoading || isMediaLoading}
+          isSubmitting={isSaving || isTagsLoading}
         />
       ) : null}
+
     </section>
   )
 }

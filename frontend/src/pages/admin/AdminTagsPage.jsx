@@ -95,6 +95,7 @@ function AdminTagModal({ isOpen, tag, onOpenChange, onSubmit, isSubmitting }) {
     formState: { errors, touchedFields },
   } = useForm({
     resolver: zodResolver(tagSchema),
+    mode: 'onBlur',
     defaultValues: {
       name: '',
       slug: '',
