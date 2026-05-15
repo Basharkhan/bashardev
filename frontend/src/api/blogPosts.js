@@ -8,6 +8,16 @@ export async function getAdminBlogPosts(page = 0, size = 10) {
   return response.data
 }
 
+export async function getAdminBlogPostById(id) {
+  const response = await apiClient.get(`/admin/blog-posts/${id}`)
+  return response.data
+}
+
+export async function getAdminBlogPostOptions() {
+  const response = await apiClient.get('/admin/blog-posts/options')
+  return response.data
+}
+
 export async function getBlogPostBySlug(slug) {
   const response = await apiClient.get(`/blog-posts/slug/${slug}`)
   return response.data

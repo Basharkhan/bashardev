@@ -76,4 +76,12 @@ public class BlogPost extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "media_asset_id")
     )
     private Set<MediaAsset> mediaAssets = new LinkedHashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "blog_post_related_posts",
+            joinColumns = @JoinColumn(name = "blog_post_id"),
+            inverseJoinColumns = @JoinColumn(name = "related_post_id")
+    )
+    private Set<BlogPost> relatedPosts = new LinkedHashSet<>();
 }

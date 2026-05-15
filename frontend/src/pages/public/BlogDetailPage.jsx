@@ -82,7 +82,7 @@ export function BlogDetailPage() {
       ) : null}
 
       <div
-        className="prose prose-lg max-w-none text-black/82 [&_img]:my-8 [&_img]:w-full [&_img]:rounded-[24px] [&_img]:border [&_img]:border-black/8 [&_img]:object-cover [&_img]:shadow-[0_18px_50px_rgba(17,17,17,0.08)]"
+        className="blog-content prose prose-lg max-w-none text-black/82 [&_img]:my-8 [&_img]:w-full [&_img]:rounded-[24px] [&_img]:border [&_img]:border-black/8 [&_img]:object-cover [&_img]:shadow-[0_18px_50px_rgba(17,17,17,0.08)]"
         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
       />
     </article>
