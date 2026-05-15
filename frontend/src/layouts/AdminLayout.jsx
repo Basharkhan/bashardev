@@ -19,7 +19,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-[#161616] text-[#f7f1e8]">
-      <div className="mx-auto grid min-h-screen max-w-7xl gap-4 px-4 py-4 lg:grid-cols-[260px_1fr] lg:gap-6 lg:px-5 lg:py-5">
+      <div className="mx-auto grid min-h-screen max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6 lg:px-5 lg:py-5">
         <aside className="hidden rounded-[28px] border border-white/10 bg-white/5 p-5 lg:block">
           <AdminSidebar user={user} onLogout={handleLogout} />
         </aside>
