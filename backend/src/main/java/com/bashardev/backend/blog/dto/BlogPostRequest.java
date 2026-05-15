@@ -33,6 +33,7 @@ public record BlogPostRequest(
         @Size(max = 255, message = "SEO description must be at most 255 characters")
         String seoDescription,
         List<Long> tagIds,
-        List<Long> mediaAssetIds
+        List<Long> mediaAssetIds,
+        List<Long> relatedPostIds
 ) {
 }

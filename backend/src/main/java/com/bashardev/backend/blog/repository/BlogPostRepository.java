@@ -11,17 +11,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
 
     @Override
-    @EntityGraph(attributePaths = {"tags", "mediaAssets"})
+    @EntityGraph(attributePaths = {"tags", "mediaAssets", "relatedPosts"})
     Optional<BlogPost> findById(Long id);
 
-    @EntityGraph(attributePaths = {"tags", "mediaAssets"})
+    @EntityGraph(attributePaths = {"tags", "mediaAssets", "relatedPosts"})
     Optional<BlogPost> findBySlug(String slug);
 
-    @EntityGraph(attributePaths = {"tags", "mediaAssets"})
+    @EntityGraph(attributePaths = {"tags", "mediaAssets", "relatedPosts"})
     Page<BlogPost> findAllByStatus(BlogPostStatus status, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"tags", "mediaAssets"})
+    @EntityGraph(attributePaths = {"tags", "mediaAssets", "relatedPosts"})
     Page<BlogPost> findAll(Pageable pageable);
 
     long countByTagsId(Long tagId);

@@ -21,6 +21,7 @@ public record BlogPostResponse(
         String seoDescription,
         List<TagResponse> tags,
         List<MediaAssetResponse> mediaAssets,
+        List<BlogPostSummaryResponse> relatedPosts,
         Instant createdAt,
         Instant updatedAt
 ) {

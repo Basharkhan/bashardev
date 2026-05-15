@@ -2,9 +2,11 @@ package com.bashardev.backend.blog.controller;
 
 import com.bashardev.backend.blog.dto.BlogPostRequest;
 import com.bashardev.backend.blog.dto.BlogPostResponse;
+import com.bashardev.backend.blog.dto.BlogPostSummaryResponse;
 import com.bashardev.backend.blog.service.BlogPostService;
 import com.bashardev.backend.common.web.PagedResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +35,11 @@ public class AdminBlogPostController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return blogPostService.getAdminBlogPosts(page, size);
+    }
+
+    @GetMapping("/options")
+    public List<BlogPostSummaryResponse> getBlogPostOptions() {
+        return blogPostService.getAdminBlogPostOptions();
     }
 
     @GetMapping("/{id}")

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedAdminRoute } from './components/admin/ProtectedAdminRoute'
 import { AdminLayout } from './layouts/AdminLayout'
 import { PublicLayout } from './layouts/PublicLayout'
+import { AdminBlogPostEditorPage } from './pages/admin/AdminBlogPostEditorPage'
 import { AdminBlogPostsPage } from './pages/admin/AdminBlogPostsPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminLoginPage } from './pages/admin/AdminLoginPage'
@@ -34,6 +35,8 @@ function App() {
       >
         <Route index element={<AdminDashboardPage />} />
         <Route path="blog-posts" element={<AdminBlogPostsPage />} />
+        <Route path="blog-posts/new" element={<AdminBlogPostEditorPage />} />
+        <Route path="blog-posts/:id/edit" element={<AdminBlogPostEditorPage />} />
         <Route path="media" element={<AdminMediaPage />} />
         <Route path="tags" element={<AdminTagsPage />} />
       </Route>

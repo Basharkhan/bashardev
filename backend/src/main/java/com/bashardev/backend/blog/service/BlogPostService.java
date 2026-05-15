@@ -2,13 +2,19 @@ package com.bashardev.backend.blog.service;
 
 import com.bashardev.backend.blog.dto.BlogPostRequest;
 import com.bashardev.backend.blog.dto.BlogPostResponse;
+import com.bashardev.backend.blog.dto.BlogPostSummaryResponse;
 import com.bashardev.backend.blog.entity.BlogPost;
 import com.bashardev.backend.blog.entity.BlogPostStatus;
 import com.bashardev.backend.blog.entity.ContentFormat;
 import com.bashardev.backend.blog.repository.BlogPostRepository;
+import com.bashardev.backend.common.web.FieldAwareResponseStatusException;
 import com.bashardev.backend.common.web.PagedResponse;
 import com.bashardev.backend.media.service.MediaAssetService;
 import com.bashardev.backend.tag.service.TagService;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -55,6 +61,12 @@ public class BlogPostService {
         ).map(BlogPostService::toResponse));
     }
 
+    public List<BlogPostSummaryResponse> getAdminBlogPostOptions() {
+        return blogPostRepository.findAll(ADMIN_SORT).stream()
+                .map(BlogPostService::toSummaryResponse)
+                .toList();
+    }
+
     public BlogPostResponse getAdminBlogPostById(Long id) {
         return toResponse(findBlogPost(id));
     }
@@ -62,14 +74,14 @@ public class BlogPostService {
     public BlogPostResponse createBlogPost(BlogPostRequest request) {
         ensureSlugAvailable(request.slug(), null);
         BlogPost post = new BlogPost();
-        apply(post, request, tagService, mediaAssetService);
+        apply(post, request);
         return toResponse(blogPostRepository.save(post));
     }
 
     public BlogPostResponse updateBlogPost(Long id, BlogPostRequest request) {
         BlogPost post = findBlogPost(id);
         ensureSlugAvailable(request.slug(), id);
-        apply(post, request, tagService, mediaAssetService);
+        apply(post, request);
         return toResponse(blogPostRepository.save(post));
     }
 
@@ -106,7 +118,7 @@ public class BlogPostService {
                 });
     }
 
-    private static void apply(BlogPost post, BlogPostRequest request, TagService tagService, MediaAssetService mediaAssetService) {
+    private void apply(BlogPost post, BlogPostRequest request) {
         post.setTitle(request.title());
         post.setSlug(request.slug());
         post.setExcerpt(request.excerpt());
@@ -123,6 +135,41 @@ public class BlogPostService {
         post.getTags().addAll(tagService.resolveTags(request.tagIds()));
         post.getMediaAssets().clear();
         post.getMediaAssets().addAll(mediaAssetService.resolveMediaAssets(request.mediaAssetIds()));
+        post.getRelatedPosts().clear();
+        post.getRelatedPosts().addAll(resolveRelatedPosts(post.getId(), request.relatedPostIds()));
+    }
+
+    private LinkedHashSet<BlogPost> resolveRelatedPosts(Long currentPostId, List<Long> relatedPostIds) {
+        if (relatedPostIds == null || relatedPostIds.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+
+        LinkedHashSet<Long> distinctIds = new LinkedHashSet<>(relatedPostIds);
+
+        if (currentPostId != null && distinctIds.contains(currentPostId)) {
+            throw new FieldAwareResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A post cannot relate to itself",
+                    Map.of("relatedPostIds", "A post cannot relate to itself")
+            );
+        }
+
+        List<BlogPost> relatedPosts = blogPostRepository.findAllById(distinctIds);
+
+        if (relatedPosts.size() != distinctIds.size()) {
+            throw new FieldAwareResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "One or more related posts do not exist",
+                    Map.of("relatedPostIds", "One or more selected related posts do not exist")
+            );
+        }
+
+        Map<Long, BlogPost> postsById = new LinkedHashMap<>();
+        relatedPosts.forEach(post -> postsById.put(post.getId(), post));
+
+        LinkedHashSet<BlogPost> orderedRelatedPosts = new LinkedHashSet<>();
+        distinctIds.forEach(id -> orderedRelatedPosts.add(postsById.get(id)));
+        return orderedRelatedPosts;
     }
 
     private static BlogPostResponse toResponse(BlogPost post) {
@@ -148,8 +195,22 @@ public class BlogPostService {
                         .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
                         .map(MediaAssetService::toResponse)
                         .toList(),
+                post.getRelatedPosts().stream()
+                        .map(BlogPostService::toSummaryResponse)
+                        .toList(),
                 post.getCreatedAt(),
                 post.getUpdatedAt()
+        );
+    }
+
+    private static BlogPostSummaryResponse toSummaryResponse(BlogPost post) {
+        return new BlogPostSummaryResponse(
+                post.getId(),
+                post.getTitle(),
+                post.getSlug(),
+                post.getStatus().name(),
+                post.isFeatured(),
+                post.getPublishedAt()
         );
     }
 }
