@@ -1,12 +1,17 @@
 package com.bashardev.backend.project.entity;
 
 import com.bashardev.backend.common.entity.BaseEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,17 +36,11 @@ public class Project extends BaseEntity {
     @Column(name = "cover_image_url", length = 255)
     private String coverImageUrl;
 
-    @Column(name = "gallery_image_urls", columnDefinition = "TEXT")
-    private String galleryImageUrls;
-
     @Column(name = "live_url", length = 255)
     private String liveUrl;
 
     @Column(name = "repository_url", length = 255)
     private String repositoryUrl;
-
-    @Column(name = "tech_stack", columnDefinition = "TEXT")
-    private String techStack;
 
     @Column(name = "featured", nullable = false)
     private boolean featured = false;
@@ -61,4 +60,12 @@ public class Project extends BaseEntity {
 
     @Column(name = "seo_description", length = 255)
     private String seoDescription;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC, id ASC")
+    private List<ProjectGalleryItem> galleryItems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC, id ASC")
+    private List<ProjectTechStackItem> techStackItems = new ArrayList<>();
 }

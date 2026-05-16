@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
 import { cn } from '../../lib/utils'
 import { getApiErrorDetails } from '../../utils/apiError'
 
@@ -50,14 +50,6 @@ function formatDate(value) {
     month: 'short',
     year: 'numeric',
   })
-}
-
-function FieldError({ message }) {
-  if (!message) {
-    return null
-  }
-
-  return <p className="text-sm text-[#f7a28c]">{message}</p>
 }
 
 function hasFieldErrors(fieldErrors) {
@@ -177,6 +169,17 @@ function AdminTagModal({ isOpen, tag, onOpenChange, onSubmit, isSubmitting }) {
     },
   })
 
+  const form = {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    setError,
+    clearErrors,
+    formState: { errors, touchedFields },
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="overflow-hidden bg-[radial-gradient(circle_at_top,rgba(217,200,176,0.12),transparent_35%),#111111]">
@@ -187,30 +190,48 @@ function AdminTagModal({ isOpen, tag, onOpenChange, onSubmit, isSubmitting }) {
           </DialogDescription>
         </DialogHeader>
 
+        <Form {...form}>
         <form className="space-y-5" onSubmit={handleSubmit(submitForm)}>
           <div className="grid gap-5 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="tag-name">Name</Label>
-              <Input
-                id="tag-name"
-                placeholder="Design Systems"
-                {...nameRegister}
-                className={cn(errors.name && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]')}
-              />
-              <FieldError message={errors.name?.message} />
-            </div>
+            <FormField
+              control={control}
+              name="name"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="tag-name"
+                      placeholder="Design Systems"
+                      {...nameRegister}
+                      className={cn(errors.name && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]')}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="tag-slug">Slug</Label>
-              <Input
-                id="tag-slug"
-                placeholder="design-systems"
-                value={slug ?? ''}
-                {...slugRegister}
-                className={cn(errors.slug && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]')}
-              />
-              <FieldError message={errors.slug?.message} />
-            </div>
+            <FormField
+              control={control}
+              name="slug"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Slug</FormLabel>
+                  <FormDescription>Generated from the name until you override it.</FormDescription>
+                  <FormControl>
+                    <Input
+                      id="tag-slug"
+                      placeholder="design-systems"
+                      value={slug ?? ''}
+                      {...slugRegister}
+                      className={cn(errors.slug && 'border-[#c96b53] bg-[#2a1713] focus:border-[#f0a991]')}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
@@ -241,6 +262,7 @@ function AdminTagModal({ isOpen, tag, onOpenChange, onSubmit, isSubmitting }) {
             </Button>
           </DialogFooter>
         </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

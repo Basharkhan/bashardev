@@ -101,10 +101,17 @@ curl -X POST http://localhost:8080/api/admin/projects \
     "summary": "A portfolio and CMS built with Spring Boot and React.",
     "contentMarkdown": "# Portfolio Platform\n\nProject details here.",
     "coverImageUrl": "https://example.com/project-cover.jpg",
-    "galleryImageUrls": "[\"https://example.com/1.jpg\",\"https://example.com/2.jpg\"]",
+    "gallery": [
+      { "imageUrl": "https://example.com/1.jpg", "altText": "Homepage overview" },
+      { "imageUrl": "https://example.com/2.jpg", "altText": "Admin dashboard" }
+    ],
     "liveUrl": "https://example.com",
     "repositoryUrl": "https://github.com/example/repo",
-    "techStack": "[\"Spring Boot\",\"React\",\"PostgreSQL\"]",
+    "techStack": [
+      { "name": "Spring Boot" },
+      { "name": "React" },
+      { "name": "PostgreSQL" }
+    ],
     "featured": true,
     "status": "PUBLISHED",
     "publishedAt": "2026-04-26T12:00:00Z",
@@ -118,6 +125,9 @@ curl -X POST http://localhost:8080/api/admin/projects \
 
 ```bash
 curl http://localhost:8080/api/admin/projects \
+  -H "Authorization: Bearer <TOKEN>"
+
+curl "http://localhost:8080/api/admin/projects?page=0&size=10&search=portfolio&status=PUBLISHED&featured=true" \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -140,10 +150,16 @@ curl -X PUT http://localhost:8080/api/admin/projects/1 \
     "summary": "Updated summary.",
     "contentMarkdown": "# Updated\n\nMore details here.",
     "coverImageUrl": "https://example.com/project-cover.jpg",
-    "galleryImageUrls": "[\"https://example.com/1.jpg\"]",
+    "gallery": [
+      { "imageUrl": "https://example.com/1.jpg", "altText": "Homepage overview" }
+    ],
     "liveUrl": "https://example.com",
     "repositoryUrl": "https://github.com/example/repo",
-    "techStack": "[\"Spring Boot\",\"React\",\"PostgreSQL\"]",
+    "techStack": [
+      { "name": "Spring Boot" },
+      { "name": "React" },
+      { "name": "PostgreSQL" }
+    ],
     "featured": true,
     "status": "PUBLISHED",
     "publishedAt": "2026-04-26T12:00:00Z",
@@ -243,4 +259,4 @@ curl -X DELETE http://localhost:8080/api/admin/blog-posts/1 \
 
 - Public endpoints only return `PUBLISHED` projects and blog posts
 - Admin CRUD lives under `/api/admin/...`
-- `galleryImageUrls` and `techStack` are currently stored as plain text so JSON strings are acceptable for now
+- Project `gallery` and `techStack` now use structured arrays instead of raw JSON strings
