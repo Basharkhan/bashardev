@@ -7,10 +7,13 @@ import { AdminBlogPostsPage } from './pages/admin/AdminBlogPostsPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { AdminMediaPage } from './pages/admin/AdminMediaPage'
+import { AdminProjectEditorPage } from './pages/admin/AdminProjectEditorPage'
+import { AdminProjectsPage } from './pages/admin/AdminProjectsPage'
 import { AdminTagsPage } from './pages/admin/AdminTagsPage'
 import { BlogDetailPage } from './pages/public/BlogDetailPage'
 import { HomePage } from './pages/public/HomePage'
 import { ProjectDetailPage } from './pages/public/ProjectDetailPage'
+import { ProjectsPage } from './pages/public/ProjectsPage'
 import { NotFoundPage } from './pages/shared/NotFoundPage'
 
 function App() {
@@ -18,7 +21,7 @@ function App() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="projects" element={<Navigate to="/#projects" replace />} />
+        <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:slug" element={<ProjectDetailPage />} />
         <Route path="blog" element={<Navigate to="/#blog" replace />} />
         <Route path="blog/:slug" element={<BlogDetailPage />} />
@@ -34,6 +37,9 @@ function App() {
         }
       >
         <Route index element={<AdminDashboardPage />} />
+        <Route path="projects" element={<AdminProjectsPage />} />
+        <Route path="projects/new" element={<AdminProjectEditorPage />} />
+        <Route path="projects/:id/edit" element={<AdminProjectEditorPage />} />
         <Route path="blog-posts" element={<AdminBlogPostsPage />} />
         <Route path="blog-posts/new" element={<AdminBlogPostEditorPage />} />
         <Route path="blog-posts/:id/edit" element={<AdminBlogPostEditorPage />} />

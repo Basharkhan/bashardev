@@ -1,10 +1,12 @@
 package com.bashardev.backend.project.controller;
 
+import com.bashardev.backend.common.web.PagedResponse;
 import com.bashardev.backend.project.dto.ProjectRequest;
 import com.bashardev.backend.project.dto.ProjectResponse;
+import com.bashardev.backend.project.dto.ProjectSummaryResponse;
+import com.bashardev.backend.project.entity.ProjectStatus;
 import com.bashardev.backend.project.service.ProjectService;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,8 +30,14 @@ public class AdminProjectController {
     }
 
     @GetMapping
-    public List<ProjectResponse> getProjects() {
-        return projectService.getAdminProjects();
+    public PagedResponse<ProjectSummaryResponse> getProjects(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) ProjectStatus status,
+            @RequestParam(required = false) Boolean featured
+    ) {
+        return projectService.getAdminProjects(page, size, search, status, featured);
     }
 
     @GetMapping("/{id}")

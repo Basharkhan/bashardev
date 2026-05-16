@@ -1,6 +1,7 @@
 package com.bashardev.backend.project.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 public record ProjectResponse(
         Long id,
@@ -9,10 +10,10 @@ public record ProjectResponse(
         String summary,
         String contentMarkdown,
         String coverImageUrl,
-        String galleryImageUrls,
+        List<ProjectGalleryItemResponse> gallery,
         String liveUrl,
         String repositoryUrl,
-        String techStack,
+        List<ProjectTechStackItemResponse> techStack,
         boolean featured,
         String status,
         Instant publishedAt,

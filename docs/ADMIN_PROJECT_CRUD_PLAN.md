@@ -2,31 +2,78 @@
 
 ## Goal
 
-Add a production-ready `project` CRUD workflow for the admin panel without forcing the frontend to compensate for weak backend contracts.
+Implement a production-ready `project` CRUD workflow for the admin panel in a way that is stable enough to build on, predictable enough to test, and strong enough that the frontend does not need to compensate for weak backend contracts.
 
 This plan covers:
 
 - backend hardening for `project`
 - admin-panel CRUD for `project`
 - verification criteria for each phase
+- final end-to-end test gates
 
-This plan does not yet include:
+This plan does not include:
 
-- public projects page redesign
+- public projects page redesign beyond contract alignment
 - analytics
 - bulk actions
 - project categories or tagging
 
+## Project Definition
+
+`Project` is not a lightweight lookup entity like `tag`, and it is not just a renamed `blog post`.
+
+For this codebase, a normal `project` entity should represent a portfolio item or case study with:
+
+- identity
+  - title
+  - slug
+  - summary
+- content
+  - markdown body
+- presentation
+  - cover image
+  - gallery
+  - featured flag
+  - display order
+- links
+  - live URL
+  - repository URL
+- publishing metadata
+  - status
+  - published date
+- SEO metadata
+  - SEO title
+  - SEO description
+- audit metadata
+  - createdAt
+  - updatedAt
+
+This means the admin workflow is closer to `blog post` than `tag` in terms of:
+
+- form complexity
+- validation needs
+- list/detail DTO separation
+- publishing workflow
+- editorial UX
+
+But the domain still differs from `blog post` because projects center on:
+
+- showcase value
+- product links
+- gallery content
+- technical stack
+- manual presentation order
+
 ## Current State
 
-The backend already contains a `project` module with:
+The backend already contains:
 
 - `Project` entity
 - public project endpoints
 - admin project CRUD endpoints
 - basic validation
 
-The main issue is that the `project` module is less mature than `blog` and `tags`.
+The current `project` module is still less mature than `blog`.
 
 ### Current Backend Gaps
 
@@ -38,50 +85,102 @@ The main issue is that the `project` module is less mature than `blog` and `tags
 - admin list and public list both use full response shapes
 - project business rules are still minimal
 
-### Current Frontend Implication
+### Current Frontend Risk
 
-If the admin panel is built directly on top of the current backend shape, the UI will likely become:
+If the admin UI is built directly on the current API shape, the frontend will become:
 
-- over-coupled to string parsing
+- coupled to string parsing
 - harder to validate cleanly
-- harder to scale once project count grows
-- inconsistent with the stronger blog and tag admin flows
+- harder to scale as project count grows
+- inconsistent with stronger admin flows already used elsewhere
 
-## Product Direction
+## Product Decisions
 
-### Decisions
+These decisions are now locked for implementation.
 
-- Treat `project` as a content-heavy admin workflow, closer to `blog post` than `tag`.
-- Harden backend contracts before building the full admin UI.
-- Use paged admin listing even if project count is currently small.
-- Separate `summary` and `detail` response shapes.
-- Replace stringly-typed multi-value fields with structured data.
+### Content Model
 
-### Recommended Data Direction
+- `project` remains its own content type.
+- Project body content stays markdown for now.
+- No `contentFormat` field is needed for `project`.
+- The project body field should remain a single markdown field such as `contentMarkdown`.
 
-For the first solid version, `project` should support:
+### Structured Fields
 
-- core identity
-  - title
-  - slug
-  - summary
-- content
-  - long-form description or content
-- presentation
-  - cover image
-  - gallery items
-  - featured flag
-  - display order
-- links
-  - live URL
-  - repository URL
-- metadata
-  - status
-  - published date
-  - SEO title
-  - SEO description
-- stack
-  - structured tech stack items
+- `gallery` should move from raw text to structured data.
+- `tech stack` should move from raw text to structured data.
+- For this version, both should be stored in a backend-friendly structured form without forcing string parsing in the UI.
+- The implementation may use JSON columns or normalized child tables, but one storage strategy must be chosen and applied consistently.
+
+### Media Direction
+
+- Media remains URL-based for this phase.
+- Integration with `media_assets` is explicitly deferred.
+
+### Publishing Rules
+
+- `PUBLISHED` projects must be publicly visible.
+- non-`PUBLISHED` projects must never appear in public endpoints.
+- `publishedAt` should be required when status is `PUBLISHED`.
+- multiple featured projects are allowed.
+
+### Sorting Rules
+
+- public published projects should sort by `displayOrder ASC`, then `publishedAt DESC`, then `createdAt DESC`
+- admin projects should sort by `updatedAt DESC`, then `id DESC`
+
+## Recommended Entity Shape
+
+The target shape for `project` should include:
+
+- `id`
+- `title`
+- `slug`
+- `summary`
+- `contentMarkdown`
+- `coverImageUrl`
+- `gallery`
+- `liveUrl`
+- `repositoryUrl`
+- `techStack`
+- `featured`
+- `status`
+- `publishedAt`
+- `displayOrder`
+- `seoTitle`
+- `seoDescription`
+- `createdAt`
+- `updatedAt`
+
+Structured fields should behave like ordered collections.
+
+Example conceptual shape:
+
+```json
+{
+  "title": "Portfolio Platform",
+  "slug": "portfolio-platform",
+  "summary": "Personal platform with admin CMS and public site.",
+  "contentMarkdown": "## Overview",
+  "coverImageUrl": "https://example.com/cover.jpg",
+  "gallery": [
+    { "url": "https://example.com/1.jpg", "alt": "Dashboard" }
+  ],
+  "liveUrl": "https://example.com",
+  "repositoryUrl": "https://github.com/example/repo",
+  "techStack": [
+    { "name": "Spring Boot" },
+    { "name": "React" },
+    { "name": "PostgreSQL" }
+  ],
+  "featured": true,
+  "status": "PUBLISHED",
+  "publishedAt": "2026-05-16T10:00:00Z",
+  "displayOrder": 1,
+  "seoTitle": "Portfolio Platform Case Study",
+  "seoDescription": "How the platform was built."
+}
+```
 
 ## Proposed Backend Contract
 
@@ -108,11 +207,18 @@ For the first solid version, `project` should support:
 ### DTO Direction
 
 - `ProjectSummaryResponse`
-  - for admin list and public cards
+  - used for admin list rows and public project cards
 - `ProjectResponse`
-  - for admin detail and public detail
+  - used for admin detail and public detail
 - `ProjectRequest`
-  - structured request payload
+  - used for create and update with structured request payloads
+
+### Contract Rules
+
+- list endpoints must not return full detail payloads
+- public endpoints must not expose draft projects
+- request and response shapes must not require string splitting or joining in the frontend
+- validation failures must use field-aware error responses
 
 ## Proposed Admin Information Architecture
 
@@ -146,7 +252,7 @@ For the first solid version, `project` should support:
 - main content column
   - title
   - summary
-  - long-form content
+  - markdown content
 - secondary settings column
   - status
   - publish date
@@ -160,268 +266,323 @@ For the first solid version, `project` should support:
 
 ## Phase Plan
 
-## Phase 1: Backend Contract Review and Data Model Decision
+Each phase below is an implementation phase, not just a discussion phase. A phase is complete only when its checklist items are done and its phase tests pass.
 
-### Scope
+## Phase 1: Lock Contract and Data Decisions
 
-Lock the backend design before writing CRUD UI code.
+### Objective
 
-### Checklist
+Freeze the project model and rules before rewriting backend and frontend behavior.
 
-- [ ] Confirm whether `gallery` will be stored as:
-  - child table, or
-  - JSON array
-- [ ] Confirm whether `tech stack` will be stored as:
-  - child table, or
-  - JSON array
-- [ ] Confirm public sorting rules for published projects.
-- [ ] Confirm whether multiple featured projects are allowed.
-- [ ] Confirm whether `publishedAt` is required for `PUBLISHED`.
-- [ ] Confirm whether project detail content remains markdown or changes to richer content later.
-- [ ] Confirm whether media should stay URL-based or integrate with `media_assets`.
+### Implementation Checklist
 
-### Test Criteria
+- [x] Confirm that `project` remains a dedicated portfolio/case-study content type.
+- [x] Confirm that project body content remains markdown.
+- [x] Confirm that `project` does not need a `contentFormat` field.
+- [x] Confirm that media remains URL-based for now.
+- [x] Confirm that multiple featured projects are allowed.
+- [x] Confirm that `publishedAt` is required for `PUBLISHED`.
+- [x] Confirm public sort behavior.
+- [x] Confirm admin sort behavior.
+- [x] Confirm that `gallery` and `techStack` must become structured fields.
+- [x] Document the final chosen persistence strategy for `gallery`.
+- [x] Document the final chosen persistence strategy for `techStack`.
 
-- [ ] There is one documented decision for gallery storage.
-- [ ] There is one documented decision for tech stack storage.
-- [ ] Public and admin sorting rules are explicit.
-- [ ] Publish-state behavior is explicit.
-- [ ] No frontend form work starts before these decisions are agreed.
+### Exit Criteria
 
-## Phase 2: Backend Admin List Hardening
+- [x] The entity definition is explicit enough that backend DTOs can be written without guesswork.
+- [x] The publishing rules are explicit enough that validation can be implemented without later contract changes.
+- [x] The persistence strategy for both structured fields is written down in this doc or a linked design note.
 
-### Scope
+## Phase 2: Harden Backend List Contracts
 
-Bring project listing to the same standard as blog and tags.
+### Objective
 
-### Checklist
+Bring project listing to the same operational standard as other admin content modules.
 
-- [ ] Add paged admin list response using `PagedResponse`.
-- [ ] Add `page` and `size` query params.
-- [ ] Add `search` query param for title or slug.
-- [ ] Add `status` filter.
-- [ ] Add `featured` filter.
-- [ ] Define stable admin sort behavior.
-- [ ] Add `ProjectSummaryResponse`.
-- [ ] Keep full detail payload out of the admin list endpoint.
+### Implementation Checklist
 
-### Test Criteria
+- [x] Add paged admin list response using `PagedResponse`.
+- [x] Add `page` and `size` query params to `GET /api/admin/projects`.
+- [x] Add `search` support against title and slug.
+- [x] Add `status` filter support.
+- [x] Add `featured` filter support.
+- [x] Apply stable admin sorting: `updatedAt DESC`, then `id DESC`.
+- [x] Add `ProjectSummaryResponse`.
+- [x] Remove full-detail-only fields from the admin list endpoint.
+- [x] Page the public projects list endpoint.
+- [x] Add a public summary DTO if the admin summary DTO should not be reused directly.
+- [x] Apply public sorting: `displayOrder ASC`, then `publishedAt DESC`, then `createdAt DESC`.
 
-- [ ] `GET /api/admin/projects` supports paging.
-- [ ] Search returns expected title or slug matches.
-- [ ] Status filtering returns only matching records.
-- [ ] Featured filtering returns only featured records when requested.
-- [ ] Admin list payload is smaller than full detail payload.
-- [ ] Sort order is stable across repeated requests.
+### Exit Criteria
 
-## Phase 3: Backend Validation and Error Quality
+- [x] Admin list requests support paging, search, and filters.
+- [x] Public list responses contain only published project summaries.
+- [x] Summary endpoints are measurably smaller than detail endpoints.
+- [x] Repeated identical list requests return stable ordering.
 
-### Scope
+## Phase 3: Strengthen Backend Validation and Error Quality
 
-Make project create/update dependable for the admin UI.
+### Objective
 
-### Checklist
+Make create and update operations dependable enough for a real editor UI.
 
-- [ ] Replace plain duplicate slug conflict with field-aware validation.
-- [ ] Add URL validation for cover, live, and repository URLs if those fields are present.
-- [ ] Add validation for non-negative display order.
-- [ ] Add publish-state validation rules.
-- [ ] Normalize slug handling consistently.
-- [ ] Validate structured gallery payload.
-- [ ] Validate structured tech stack payload.
-- [ ] Keep error messages frontend-friendly and field-specific.
+### Implementation Checklist
 
-### Test Criteria
+- [x] Replace plain duplicate slug conflicts with field-aware validation errors.
+- [x] Normalize slug handling consistently before uniqueness checks.
+- [x] Add URL validation for `coverImageUrl`, `liveUrl`, and `repositoryUrl` when present.
+- [x] Add validation for non-negative `displayOrder`.
+- [x] Add validation requiring `publishedAt` when status is `PUBLISHED`.
+- [x] Add validation rejecting `publishedAt` business-rule violations.
+- [x] Validate structured gallery payload shape.
+- [x] Validate structured tech stack payload shape.
+- [x] Keep validation messages field-specific and frontend-friendly.
+- [x] Align project validation response shape with existing tag/blog behavior.
 
-- [ ] Duplicate slug returns a field-level error for `slug`.
-- [ ] Invalid URLs return field-level errors.
-- [ ] Invalid publish state is rejected consistently.
-- [ ] Invalid gallery or tech stack payload is rejected predictably.
-- [ ] Validation failures use the same response shape pattern as tags/blog.
+### Exit Criteria
 
-## Phase 4: Backend Detail and Persistence Refactor
+- [x] Duplicate slug errors are returned against the `slug` field.
+- [x] Invalid URLs are reported at the correct field keys.
+- [x] Publish-state validation behaves consistently across create and update.
+- [x] Structured field validation fails predictably for malformed payloads.
 
-### Scope
+## Phase 4: Refactor Persistence for Structured Project Fields
 
-Move project storage away from weak raw-string fields.
+### Objective
 
-### Checklist
+Remove raw-string multi-value storage from `project`.
 
-- [ ] Add migration for structured gallery persistence.
-- [ ] Add migration for structured tech stack persistence.
-- [ ] Update entity model to reflect structured data.
-- [ ] Update request mapping logic.
-- [ ] Update response mapping logic.
-- [ ] Preserve existing project data via migration or compatibility transform.
-- [ ] Re-check public detail and admin detail payloads after refactor.
+### Implementation Checklist
 
-### Test Criteria
+- [x] Implement the chosen persistence strategy for `gallery`.
+- [x] Implement the chosen persistence strategy for `techStack`.
+- [x] Add database migration(s) for the new project structure.
+- [x] Preserve existing project records through migration or compatibility handling.
+- [x] Update the entity model to use structured fields.
+- [x] Update request mapping logic.
+- [x] Update response mapping logic.
+- [x] Preserve item ordering for `gallery`.
+- [x] Preserve item ordering for `techStack`.
+- [x] Remove admin/frontend dependence on manual string serialization.
+
+### Exit Criteria
 
 - [ ] Existing project records remain readable after migration.
-- [ ] Gallery items persist in defined order.
-- [ ] Tech stack items persist in defined order.
-- [ ] Admin create and update no longer depend on raw text serialization.
-- [ ] Public detail responses still render required content.
+- [x] New records persist structured `gallery` values in stable order.
+- [x] New records persist structured `techStack` values in stable order.
+- [x] Admin and public detail payloads reflect the new structured shape.
 
-## Phase 5: Backend Test Coverage
+## Phase 5: Add Backend Test Coverage
 
-### Scope
+### Objective
 
-Add enough backend coverage that frontend work is not blocked by contract uncertainty.
+Lock the contract with automated tests before depending on it in the admin UI.
 
-### Checklist
+### Implementation Checklist
 
-- [ ] Add controller tests for admin list filters and paging.
-- [ ] Add controller tests for create and update validation failures.
-- [ ] Add service tests for slug uniqueness.
-- [ ] Add service tests for publish-state rules.
-- [ ] Add tests for gallery and tech stack ordering.
-- [ ] Add tests for public published-only access.
+- [x] Add controller tests for admin list paging.
+- [x] Add controller tests for admin list search.
+- [x] Add controller tests for admin list status filtering.
+- [x] Add controller tests for admin list featured filtering.
+- [x] Add controller tests for create validation failures.
+- [ ] Add controller tests for update validation failures.
+- [x] Add service tests for slug uniqueness rules.
+- [x] Add service tests for publish-state rules.
+- [x] Add tests for structured gallery ordering.
+- [x] Add tests for structured tech stack ordering.
+- [x] Add tests proving public endpoints never return drafts.
+- [x] Add tests for public sort order.
 
-### Test Criteria
+### Exit Criteria
 
-- [ ] Admin list tests cover page, size, search, status, and featured.
-- [ ] Validation tests cover duplicate slug and malformed field inputs.
-- [ ] Public endpoints never return draft projects.
-- [ ] Structured fields persist and return in expected order.
+- [x] Admin list tests cover page, size, search, status, and featured.
+- [x] Validation tests cover duplicate slug and malformed field inputs.
+- [x] Public endpoints reject draft visibility.
+- [x] Structured fields persist and return in expected order.
 
-## Phase 6: Frontend Admin API Layer
+## Phase 6: Update Frontend Project API Layer
 
-### Scope
+### Objective
 
-Prepare the frontend to consume the improved backend contract cleanly.
+Make the frontend consume the hardened contract directly instead of adapting bad payloads.
 
-### Checklist
+### Implementation Checklist
 
-- [ ] Add `frontend/src/api/projects.js` admin methods if missing or incomplete.
-- [ ] Separate list and detail fetch helpers.
-- [ ] Add request payload shaping for structured gallery and tech stack fields.
-- [ ] Normalize API error handling for field-aware project errors.
-- [ ] Add lightweight frontend types or documented response assumptions.
+- [x] Add or rebuild `frontend/src/api/projects.js` admin methods.
+- [x] Separate list and detail fetch helpers.
+- [x] Support paging and filters in admin list calls.
+- [x] Support public paged project list calls.
+- [x] Shape request payloads for structured `gallery` and `techStack`.
+- [x] Normalize backend validation errors into a form-friendly structure.
+- [x] Remove ad hoc string parsing from project API consumers.
+- [x] Document payload assumptions or add lightweight frontend types.
 
-### Test Criteria
+### Exit Criteria
 
-- [ ] Admin list fetch supports paging and filters.
-- [ ] Admin detail fetch returns full editor payload.
-- [ ] Field-level backend errors can be mapped into form UI without custom hacks.
-- [ ] No screen performs inline ad hoc payload transformation.
+- [x] Frontend list helpers support paging and filter params directly.
+- [x] Frontend detail helpers return the full editor payload directly.
+- [x] Field-level backend validation errors map cleanly into form UI.
+- [x] No screen depends on inline string transformations for project data.
 
-## Phase 7: Frontend Projects Index
+## Phase 7: Build the Admin Projects Index
 
-### Scope
+### Objective
 
-Build a project management index that stays readable as project count grows.
+Ship an admin project list that remains usable as content volume grows.
 
-### Checklist
+### Implementation Checklist
 
-- [ ] Add `/admin/projects` page if missing or rebuild it on the new API.
-- [ ] Add clear page heading and create action.
-- [ ] Add search input.
-- [ ] Add status filter.
-- [ ] Add featured filter.
-- [ ] Add summary cards only if they improve scanning.
-- [ ] Use a row/card hybrid layout rather than an overly wide table.
-- [ ] Show essential fields only:
+- [x] Add or rebuild `/admin/projects`.
+- [x] Add page heading and create action.
+- [x] Add search input.
+- [x] Add status filter.
+- [x] Add featured filter.
+- [x] Add scan-friendly list layout.
+- [x] Show only essential columns or card fields:
   - title
   - slug
   - status
   - featured
   - updated
   - display order
-- [ ] Add pagination controls.
-- [ ] Keep edit and delete actions obvious.
+- [x] Add pagination controls.
+- [x] Make edit and delete actions obvious.
+- [x] Add loading state.
+- [x] Add empty state.
+- [x] Add filtered-empty state.
+- [x] Add error state.
 
-### Test Criteria
+### Exit Criteria
 
-- [ ] Projects can be found quickly by search.
-- [ ] Filters work without full page reload.
-- [ ] The index remains readable at laptop widths.
-- [ ] The screen does not require excessive horizontal scrolling.
-- [ ] Pagination reflects backend state accurately.
+- [x] Projects can be found quickly through search.
+- [x] Filters update the list without a full page reload.
+- [x] Pagination reflects backend state correctly.
+- [x] The screen remains readable on typical laptop widths without excessive horizontal scrolling.
 
-## Phase 8: Frontend Project Editor Foundation
+## Phase 8: Build the Admin Project Editor Shell
 
-### Scope
+### Objective
 
-Build the full-page editor route structure and layout before polishing every field group.
+Create the route and layout foundation for authoring projects.
 
-### Checklist
+### Implementation Checklist
 
-- [ ] Add `/admin/projects/new`.
-- [ ] Add `/admin/projects/:id/edit`.
-- [ ] Create a dedicated `AdminProjectEditorPage`.
-- [ ] Support both create and edit flows.
-- [ ] Add top action bar with save/publish actions.
-- [ ] Create a writing-first main column and settings sidebar.
-- [ ] Stack sections cleanly on smaller screens.
+- [x] Add `/admin/projects/new`.
+- [x] Add `/admin/projects/:id/edit`.
+- [x] Create a dedicated `AdminProjectEditorPage`.
+- [x] Support both create and edit flows.
+- [x] Load project detail by ID for edit mode.
+- [x] Add top action bar with save/publish actions.
+- [x] Create a writing-first main column and settings sidebar.
+- [x] Make the layout stack cleanly on smaller screens.
+- [x] Add loading state.
+- [x] Add not-found state.
+- [x] Add general error state.
 
-### Test Criteria
+### Exit Criteria
 
-- [ ] New and edit entry points use routes rather than modals.
-- [ ] Browser navigation works naturally between index and editor.
-- [ ] Layout works on desktop and mobile without clipping controls.
-- [ ] Long forms remain usable without horizontal scrolling.
+- [x] New and edit entry points are route-based rather than modal-based.
+- [x] Browser navigation works cleanly between index and editor.
+- [x] The editor layout works on desktop and mobile without clipping controls.
 
-## Phase 9: Frontend Project Form Completion
+## Phase 9: Complete the Project Form
 
-### Scope
+### Objective
 
-Finish the project form with all required field groups and validation behavior.
+Finish the editor with all required project fields and validation UX.
 
-### Checklist
+### Implementation Checklist
 
-- [ ] Add core fields:
+- [x] Add identity fields:
   - title
   - slug
   - summary
-  - content
-- [ ] Add publishing controls:
+- [x] Add markdown content field:
+  - contentMarkdown
+- [x] Add publishing controls:
   - status
   - publishedAt
   - featured
   - displayOrder
-- [ ] Add links section:
+- [x] Add links section:
   - live URL
   - repository URL
-- [ ] Add cover image field or picker.
-- [ ] Add gallery editor UI.
-- [ ] Add tech stack editor UI.
-- [ ] Add SEO section.
-- [ ] Add inline validation messages.
-- [ ] Add loading and save states.
+- [x] Add cover image URL field.
+- [x] Add gallery editor UI for structured items.
+- [x] Add tech stack editor UI for structured items.
+- [x] Add SEO section.
+- [x] Add inline validation messages.
+- [x] Add save state.
+- [x] Add successful save behavior that keeps editor state coherent after reload.
 
-### Test Criteria
+### Exit Criteria
 
-- [ ] A new draft project can be created successfully.
-- [ ] An existing project can be edited and saved successfully.
-- [ ] Field validation errors appear next to the correct inputs.
-- [ ] Structured gallery editing is predictable.
-- [ ] Structured tech stack editing is predictable.
-- [ ] Saving preserves values after reload.
+- [x] A new draft project can be created successfully.
+- [x] An existing project can be edited and saved successfully.
+- [x] Field validation errors appear next to the correct inputs.
+- [x] Structured gallery editing is predictable and order-preserving.
+- [x] Structured tech stack editing is predictable and order-preserving.
+- [x] Saved values survive reload correctly.
 
-## Phase 10: Frontend Delete and Edge-State Handling
+## Phase 10: Finish Delete Flow and Edge States
 
-### Scope
+### Objective
 
-Finish the workflow around destructive actions and unusual states.
+Close the workflow gaps so the CRUD system is production-usable rather than only demo-usable.
 
-### Checklist
+### Implementation Checklist
 
-- [ ] Add delete confirmation flow.
-- [ ] Handle missing project detail gracefully.
-- [ ] Handle expired auth gracefully.
-- [ ] Handle empty project list state.
-- [ ] Handle filtered empty state.
-- [ ] Handle API failure states in both index and editor.
-- [ ] Consider unsaved-change protection if practical.
+- [x] Add delete confirmation flow.
+- [x] Remove deleted items from the list after success.
+- [x] Handle missing project detail gracefully.
+- [x] Handle invalid project IDs gracefully.
+- [x] Handle expired auth safely.
+- [x] Handle API failure states in both index and editor.
+- [ ] Add unsaved-change protection if practical within current app patterns.
 
-### Test Criteria
+### Exit Criteria
 
-- [ ] Delete requires explicit confirmation.
-- [ ] Deleted project disappears from the list after success.
-- [ ] Missing or invalid IDs do not break the admin app shell.
-- [ ] Empty and error states are distinct and understandable.
-- [ ] Token expiry returns the user to a safe auth flow.
+- [x] Delete requires explicit confirmation.
+- [x] Deleted projects disappear from the list after success.
+- [x] Missing or invalid IDs do not break the admin app shell.
+- [x] Empty states and error states remain distinct and understandable.
+- [x] Token expiry leads the user back into a safe auth flow.
+
+## Final Verification
+
+The implementation is not complete until every phase above is done and the full test suite for this feature passes.
+
+### Required Final Checks
+
+- [ ] Backend migrations apply cleanly on a fresh database.
+- [ ] Existing project data remains readable after migration.
+- [x] Backend automated tests pass.
+- [x] Frontend automated tests pass if project CRUD frontend tests exist.
+- [ ] Manual admin CRUD verification passes.
+- [ ] Manual public project verification passes.
+
+### Required Manual CRUD Verification
+
+- [ ] Create a draft project.
+- [ ] Edit that draft project.
+- [ ] Publish that project with a valid `publishedAt`.
+- [ ] Confirm it appears in public project listings.
+- [ ] Confirm project detail renders expected content.
+- [ ] Confirm drafts never appear in public endpoints.
+- [ ] Confirm search and filters work in `/admin/projects`.
+- [ ] Confirm delete removes the project successfully.
+
+### Required Commands
+
+Commands used during implementation:
+
+- backend tests: `cd backend && mvn -q test`
+- frontend production verification: `cd frontend && npm run build`
+
+- [x] backend test command documented
+- [x] frontend test command documented
+- [ ] migration verification command documented
 
 ## Suggested Implementation Order
 
@@ -435,29 +596,31 @@ Finish the workflow around destructive actions and unusual states.
 8. Phase 8
 9. Phase 9
 10. Phase 10
+11. Final Verification
 
 This order is intentional.
 
-- Backend contract stability should come before admin form implementation.
-- Structured data decisions should come before frontend field UX.
-- Index work should land before the editor only if the list contract is ready.
-
-## Review Questions
-
-Before implementation starts, these are the most important review decisions:
-
-1. Should `gallery` and `tech stack` be normalized tables or JSON payloads?
-2. Should project content stay markdown for now?
-3. Should project media remain URL-based or integrate with the media library?
-4. Should the public projects endpoint become paged now, or only the admin endpoint?
-5. Should `featured` affect public ordering directly, and if yes, how?
+- contract stability comes before UI work
+- structured data decisions come before editor UX
+- backend tests come before relying on the contract in the frontend
+- delete flow and edge states come after the core create and edit path is stable
 
 ## Definition of Ready
 
-The project CRUD implementation is ready to begin when:
+Implementation status:
 
-- [ ] the data-model decision for gallery and tech stack is approved
-- [ ] the admin API contract is approved
-- [ ] the route structure is approved
-- [ ] validation rules are approved
-- [ ] list vs detail DTO separation is approved
+- `gallery` persistence strategy: normalized child table `project_gallery_items` with explicit `position`
+- `techStack` persistence strategy: normalized child table `project_tech_stack_items` with explicit `position`
+- backend contract, tests, and frontend CRUD routes are implemented
+- remaining unchecked items are manual verification and optional polish
+
+## Definition of Done
+
+Project CRUD is done only when:
+
+- [x] all ten phases are complete
+- [ ] every phase exit criterion is satisfied
+- [x] backend and frontend contract behavior matches this document
+- [x] automated tests pass
+- [ ] manual CRUD verification passes
+- [x] no admin screen depends on parsing raw string project fields

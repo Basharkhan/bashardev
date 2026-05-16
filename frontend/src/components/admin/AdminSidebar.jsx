@@ -1,10 +1,11 @@
-import { Image, LayoutDashboard, LogOut, Tag, FileText } from 'lucide-react'
+import { Image, LayoutDashboard, LogOut, Tag, FileText, FolderKanban } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Button } from '../ui/button'
 import { cn } from '../../lib/utils'
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
   { to: '/admin/blog-posts', label: 'Blog posts', icon: FileText },
   { to: '/admin/tags', label: 'Tags', icon: Tag },
   { to: '/admin/media', label: 'Media', icon: Image },
