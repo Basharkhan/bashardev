@@ -1,6 +1,7 @@
 package com.bashardev.backend.site.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record SiteSettingsRequest(
@@ -22,18 +23,25 @@ public record SiteSettingsRequest(
         String fullBio,
         @Size(max = 120, message = "Location must be at most 120 characters")
         String location,
+        @Pattern(regexp = "^$|^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$", message = "must be a well-formed email address")
         @Size(max = 120, message = "Email must be at most 120 characters")
         String email,
+        @Pattern(regexp = "^$|^https?://.*", message = "must be a valid URL")
         @Size(max = 255, message = "GitHub URL must be at most 255 characters")
         String githubUrl,
+        @Pattern(regexp = "^$|^https?://.*", message = "must be a valid URL")
         @Size(max = 255, message = "LinkedIn URL must be at most 255 characters")
         String linkedinUrl,
+        @Pattern(regexp = "^$|^https?://.*", message = "must be a valid URL")
         @Size(max = 255, message = "Twitter URL must be at most 255 characters")
         String twitterUrl,
+        @Pattern(regexp = "^$|^https?://.*", message = "must be a valid URL")
         @Size(max = 255, message = "Resume URL must be at most 255 characters")
         String resumeUrl,
+        @Pattern(regexp = "^$|^https?://.*", message = "must be a valid URL")
         @Size(max = 255, message = "Profile image URL must be at most 255 characters")
         String profileImageUrl,
+        @Pattern(regexp = "^$|^https?://.*", message = "must be a valid URL")
         @Size(max = 255, message = "Hero image URL must be at most 255 characters")
         String heroImageUrl
 ) {
