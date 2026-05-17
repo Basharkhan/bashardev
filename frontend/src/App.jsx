@@ -11,6 +11,8 @@ import { AdminProjectEditorPage } from './pages/admin/AdminProjectEditorPage'
 import { AdminProjectsPage } from './pages/admin/AdminProjectsPage'
 import { AdminSiteSettingsPage } from './pages/admin/AdminSiteSettingsPage'
 import { AdminTagsPage } from './pages/admin/AdminTagsPage'
+import { AdminContactMessagesPage } from './pages/admin/AdminContactMessagesPage'
+import { AdminContactMessageDetailPage } from './pages/admin/AdminContactMessageDetailPage'
 import { BlogDetailPage } from './pages/public/BlogDetailPage'
 import { HomePage } from './pages/public/HomePage'
 import { ProjectDetailPage } from './pages/public/ProjectDetailPage'
@@ -47,6 +49,8 @@ function App() {
         <Route path="blog-posts/:id/edit" element={<AdminBlogPostEditorPage />} />
         <Route path="media" element={<AdminMediaPage />} />
         <Route path="tags" element={<AdminTagsPage />} />
+        <Route path="contact-messages" element={<AdminContactMessagesPage />} />
+        <Route path="contact-messages/:id" element={<AdminContactMessageDetailPage />} />
       </Route>
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFoundPage />} />
