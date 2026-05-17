@@ -3,66 +3,57 @@ package com.bashardev.backend.site.service;
 import com.bashardev.backend.site.dto.SiteSettingsRequest;
 import com.bashardev.backend.site.dto.SiteSettingsResponse;
 import com.bashardev.backend.site.entity.SiteSettings;
+import com.bashardev.backend.site.mapper.SiteSettingsMapper;
 import com.bashardev.backend.site.repository.SiteSettingsRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SiteSettingsService {
 
-    private final SiteSettingsRepository siteSettingsRepository;
+    private static final String DEFAULT_SITE_TITLE = "BasharDev";
+    private static final String DEFAULT_SITE_DESCRIPTION = "Personal portfolio and blog";
+    private static final String DEFAULT_OWNER_NAME = "Bashar Khan";
+    private static final String DEFAULT_HEADLINE = "Software Developer";
+    private static final String DEFAULT_SHORT_BIO = "Full-stack developer building modern web applications.";
 
-    public SiteSettingsService(SiteSettingsRepository siteSettingsRepository) {
+    private final SiteSettingsRepository siteSettingsRepository;
+    private final SiteSettingsMapper mapper;
+
+    public SiteSettingsService(SiteSettingsRepository siteSettingsRepository, SiteSettingsMapper mapper) {
         this.siteSettingsRepository = siteSettingsRepository;
+        this.mapper = mapper;
     }
 
     public SiteSettingsResponse getSiteSettings() {
-        return toResponse(siteSettingsRepository.findAll().stream().findFirst().orElse(null));
+        return siteSettingsRepository.findSingleton()
+                .map(mapper::toResponse)
+                .orElseGet(this::defaultResponse);
     }
 
     public SiteSettingsResponse upsertSiteSettings(SiteSettingsRequest request) {
-        SiteSettings settings = siteSettingsRepository.findAll().stream().findFirst().orElseGet(SiteSettings::new);
-        apply(settings, request);
-        return toResponse(siteSettingsRepository.save(settings));
+        SiteSettings settings = siteSettingsRepository.findSingleton()
+                .orElseGet(SiteSettings::new);
+        mapper.updateEntity(settings, request);
+        return mapper.toResponse(siteSettingsRepository.save(settings));
     }
 
-    private static void apply(SiteSettings settings, SiteSettingsRequest request) {
-        settings.setSiteTitle(request.siteTitle());
-        settings.setSiteDescription(request.siteDescription());
-        settings.setOwnerName(request.ownerName());
-        settings.setHeadline(request.headline());
-        settings.setShortBio(request.shortBio());
-        settings.setFullBio(request.fullBio());
-        settings.setLocation(request.location());
-        settings.setEmail(request.email());
-        settings.setGithubUrl(request.githubUrl());
-        settings.setLinkedinUrl(request.linkedinUrl());
-        settings.setTwitterUrl(request.twitterUrl());
-        settings.setResumeUrl(request.resumeUrl());
-        settings.setProfileImageUrl(request.profileImageUrl());
-        settings.setHeroImageUrl(request.heroImageUrl());
-    }
-
-    private static SiteSettingsResponse toResponse(SiteSettings settings) {
-        if (settings == null) {
-            return null;
-        }
-
+    private SiteSettingsResponse defaultResponse() {
         return new SiteSettingsResponse(
-                settings.getId(),
-                settings.getSiteTitle(),
-                settings.getSiteDescription(),
-                settings.getOwnerName(),
-                settings.getHeadline(),
-                settings.getShortBio(),
-                settings.getFullBio(),
-                settings.getLocation(),
-                settings.getEmail(),
-                settings.getGithubUrl(),
-                settings.getLinkedinUrl(),
-                settings.getTwitterUrl(),
-                settings.getResumeUrl(),
-                settings.getProfileImageUrl(),
-                settings.getHeroImageUrl()
+                null,
+                DEFAULT_SITE_TITLE,
+                DEFAULT_SITE_DESCRIPTION,
+                DEFAULT_OWNER_NAME,
+                DEFAULT_HEADLINE,
+                DEFAULT_SHORT_BIO,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 }

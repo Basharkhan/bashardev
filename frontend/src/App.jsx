@@ -9,6 +9,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { AdminMediaPage } from './pages/admin/AdminMediaPage'
 import { AdminProjectEditorPage } from './pages/admin/AdminProjectEditorPage'
 import { AdminProjectsPage } from './pages/admin/AdminProjectsPage'
+import { AdminSiteSettingsPage } from './pages/admin/AdminSiteSettingsPage'
 import { AdminTagsPage } from './pages/admin/AdminTagsPage'
 import { BlogDetailPage } from './pages/public/BlogDetailPage'
 import { HomePage } from './pages/public/HomePage'
@@ -37,6 +38,7 @@ function App() {
         }
       >
         <Route index element={<AdminDashboardPage />} />
+        <Route path="settings" element={<AdminSiteSettingsPage />} />
         <Route path="projects" element={<AdminProjectsPage />} />
         <Route path="projects/new" element={<AdminProjectEditorPage />} />
         <Route path="projects/:id/edit" element={<AdminProjectEditorPage />} />
