@@ -1,4 +1,4 @@
-import { Image, LayoutDashboard, LogOut, Settings, Tag, FileText, FolderKanban } from 'lucide-react'
+import { Image, LayoutDashboard, LogOut, MessageCircle, Settings, Tag, FileText, FolderKanban } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Button } from '../ui/button'
 import { cn } from '../../lib/utils'
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
   { to: '/admin/blog-posts', label: 'Blog posts', icon: FileText },
   { to: '/admin/tags', label: 'Tags', icon: Tag },
+  { to: '/admin/contact-messages', label: 'Messages', icon: MessageCircle },
   { to: '/admin/media', label: 'Media', icon: Image },
 ]
 
